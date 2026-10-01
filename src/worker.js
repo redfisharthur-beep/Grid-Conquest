@@ -391,22 +391,21 @@ function orthogonal(i) {
 }
 function makeQuestion(level) {
   if (level === "basic") {
-    // 3 個數字 + 2 個符號；只使用加減，所有數字與結果維持 0～20。
-    for (let n=0;n<300;n++) {
-      const a=rand(0,20), b=rand(0,20), c=rand(0,20);
+    // 3 個數字 + 2 個符號；每個題目數字皆為 1～20，只使用加減，答案不可為負數。
+    for (let n=0;n<500;n++) {
+      const a=rand(1,20), b=rand(1,20), c=rand(1,20);
       const op1 = Math.random() < .5 ? "+" : "-";
       const op2 = Math.random() < .5 ? "+" : "-";
-      const first = op1 === "+" ? a+b : a-b;
-      const answer = op2 === "+" ? first+c : first-c;
-      if (first < 0 || first > 20 || answer < 0 || answer > 20) continue;
+      const answer = evalThree(a, op1, b, op2, c);
+      if (answer === null || !Number.isInteger(answer) || answer < 0) continue;
       return {text:a+" "+op1+" "+b+" "+op2+" "+c+" = ?", answer};
     }
     return {text:"12 - 5 + 8 = ?", answer:15};
   }
 
   if (level === "advanced") {
-    // 3 個正整數 + 2 個四則符號；依正常先乘除後加減規則，答案必為整數。
-    for (let n=0;n<500;n++) {
+    // 3 個正整數 + 2 個四則符號；每個題目數字皆為 1～20，答案不可為負數且除法只出整數答案。
+    for (let n=0;n<1000;n++) {
       const a=rand(1,20), b=rand(1,20), c=rand(1,20);
       const op1 = ["+","-","×","÷"][rand(0,3)];
       const op2 = ["+","-","×","÷"][rand(0,3)];
@@ -417,13 +416,13 @@ function makeQuestion(level) {
     return {text:"18 ÷ 3 + 7 = ?", answer:13};
   }
 
-  // 挑戰：3 個 -20～20 的整數 + 2 個四則符號；答案必為 -20～20 的整數。
-  for (let n=0;n<800;n++) {
+  // 挑戰：3 個 -20～20 的整數 + 2 個四則符號；答案可為負數或正數，除法只出整數答案。
+  for (let n=0;n<1200;n++) {
     const a=rand(-20,20), b=rand(-20,20), c=rand(-20,20);
     const op1 = ["+","-","×","÷"][rand(0,3)];
     const op2 = ["+","-","×","÷"][rand(0,3)];
     const value = evalThree(a, op1, b, op2, c);
-    if (value === null || !Number.isInteger(value) || value < -20 || value > 20) continue;
+    if (value === null || !Number.isInteger(value)) continue;
     return {
       text:showNumber(a)+" "+op1+" "+showNumber(b)+" "+op2+" "+showNumber(c)+" = ?",
       answer:value
