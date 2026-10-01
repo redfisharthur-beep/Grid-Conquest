@@ -109,7 +109,8 @@ export class GameHub {
       status: "waiting",
       correctCount: 0,
       claimRemaining: 0,
-      lockNextClaim: false
+      lockNextClaim: false,
+      mageUsed: false
     };
     room.players.push(player);
 
@@ -136,7 +137,10 @@ export class GameHub {
       if (!p.host || room.state !== "waiting" || room.players.length < 2) return;
       room.state = "playing";
       room.round = 0;
-      for (const x of room.players) x.correctCount = 0;
+      for (const x of room.players) {
+        x.correctCount = 0;
+        x.mageUsed = false;
+      }
       this.startRound(room);
       return;
     }
@@ -174,7 +178,10 @@ export class GameHub {
       p.claimRemaining -= 1;
 
       const lineCaptured = this.resolveCaptures(room, p.id);
-      if (p.job === "mage" && lineCaptured) this.mageBonus(room, p.id);
+      if (p.job === "mage" && lineCaptured && !p.mageUsed) {
+        p.mageUsed = true;
+        this.mageBonus(room, p.id);
+      }
 
       if (p.claimRemaining <= 0) {
         p.status = "done";
@@ -282,7 +289,7 @@ export class GameHub {
       board: room.board,
       players: room.players.map((p,i) => ({
         id:p.id, name:p.name, job:p.job, host:p.host, status:p.status,
-        correctCount:p.correctCount, claimRemaining:p.claimRemaining, colorIndex:i
+        correctCount:p.correctCount, claimRemaining:p.claimRemaining, mageUsed:!!p.mageUsed, colorIndex:i
       }))
     };
   }
