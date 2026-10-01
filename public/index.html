@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f2efe8">
+  <title>Grid Conquest</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main id="app">
+    <section id="homePage" class="page active">
+      <div class="shell home-shell">
+        <div class="art-slot hero-art" aria-label="首頁主圖預留區">首頁主圖</div>
+        <label class="field">
+          <span>玩家名字</span>
+          <input id="playerName" maxlength="12" autocomplete="nickname" placeholder="輸入名字">
+        </label>
+        <button id="fightBtn" class="fight-btn" type="button">
+          <span class="fight-icon-slot">FIGHT</span>
+        </button>
+      </div>
+    </section>
+
+    <section id="lobbyPage" class="page">
+      <div class="shell">
+        <header class="bar">
+          <button class="text-btn" data-go="homePage">返回</button>
+          <strong id="lobbyName"></strong>
+        </header>
+
+        <h1>選擇職業</h1>
+        <div id="classGrid" class="class-grid">
+          <button class="class-card" data-job="warrior">
+            <span class="class-art warrior-art">戰士圖</span>
+            <b>戰士</b>
+            <small>前 2 次答對佔領的格子鎖定</small>
+          </button>
+          <button class="class-card" data-job="mage">
+            <span class="class-art mage-art">法師圖</span>
+            <b>法師</b>
+            <small>連線吃子時再隨機佔領 1 格</small>
+          </button>
+          <button class="class-card" data-job="archer">
+            <span class="class-art archer-art">弓手圖</span>
+            <b>弓手</b>
+            <small>第 3 次答對可一次佔領 2 格</small>
+          </button>
+          <button class="class-card" data-job="priest">
+            <span class="class-art priest-art">牧師圖</span>
+            <b>牧師</b>
+            <small>佔領中央格時該格計 5 分</small>
+          </button>
+        </div>
+
+        <div class="lobby-actions">
+          <div class="create-box">
+            <h2>建立房間</h2>
+            <div class="row">
+              <label class="field compact">
+                <span>人數</span>
+                <select id="maxPlayers">
+                  <option value="2">2 人</option>
+                  <option value="3">3 人</option>
+                </select>
+              </label>
+              <label class="field compact">
+                <span>難度</span>
+                <select id="difficulty">
+                  <option value="basic">基本</option>
+                  <option value="advanced">進階</option>
+                  <option value="challenge">挑戰</option>
+                </select>
+              </label>
+            </div>
+            <button id="createRoomBtn" class="primary" type="button">建立房間</button>
+          </div>
+
+          <div class="rooms-box">
+            <div class="section-title">
+              <h2>房間列表</h2>
+              <button id="refreshRoomsBtn" class="text-btn" type="button">重新整理</button>
+            </div>
+            <div id="roomList" class="room-list"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="gamePage" class="page">
+      <div class="shell game-shell">
+        <header class="game-head">
+          <div>
+            <strong id="roundText">等待開始</strong>
+            <small id="difficultyText"></small>
+          </div>
+          <div id="timer" class="timer">60</div>
+        </header>
+
+        <div id="playersBar" class="players-bar"></div>
+
+        <div id="waitingPanel" class="panel waiting-panel">
+          <h2 id="roomTitle">房間</h2>
+          <p id="waitingText">等待玩家加入</p>
+          <button id="startBtn" class="primary hidden" type="button">開始對戰</button>
+        </div>
+
+        <div id="battlePanel" class="battle hidden">
+          <div id="questionBox" class="question-box">
+            <small>計算題</small>
+            <div id="questionText" class="question">--</div>
+            <form id="answerForm" class="answer-row">
+              <input id="answerInput" inputmode="numeric" autocomplete="off" placeholder="輸入答案">
+              <button class="primary" type="submit">送出</button>
+            </form>
+            <div id="answerState" class="answer-state">請作答</div>
+          </div>
+
+          <div class="board-wrap">
+            <div id="board" class="board" aria-label="3乘3搶地盤棋盤"></div>
+            <div class="board-note">中央格 2 分，其餘 1 分</div>
+          </div>
+        </div>
+
+        <div id="resultPanel" class="panel result-panel hidden">
+          <h2>對戰結束</h2>
+          <div id="resultList"></div>
+          <button id="backLobbyBtn" class="primary" type="button">回到大廳</button>
+        </div>
+
+        <div id="toast" class="toast" aria-live="polite"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>
