@@ -241,15 +241,6 @@ export class GameHub {
         }
       }
 
-      for (let i=0;i<9;i++) {
-        const c = room.board[i];
-        if (!c.owner || c.owner === playerId || c.locked) continue;
-        const ns = orthogonal(i);
-        if (ns.length >= 2 && ns.every(n => room.board[n].owner === playerId)) {
-          room.board[i] = {owner:playerId, locked:false};
-          changed = true;
-        }
-      }
     }
     return anyLine;
   }
@@ -387,14 +378,6 @@ function cleanName(v) {
 }
 function rand(min,max) {
   return Math.floor(Math.random()*(max-min+1))+min;
-}
-function orthogonal(i) {
-  const r = Math.floor(i/3), c = i%3, out = [];
-  if (r>0) out.push(i-3);
-  if (r<2) out.push(i+3);
-  if (c>0) out.push(i-1);
-  if (c<2) out.push(i+1);
-  return out;
 }
 function makeQuestion(level) {
   if (level === "basic") {
