@@ -55,7 +55,7 @@ $$(".class-card").forEach(card => {
   });
 });
 
-$("#createRoomBtn").addEventListener("click", async () => {
+async function createRoom(training=false) {
   if (!state.job) return toast("請選擇職業");
   try {
     const res = await fetch("/api/rooms", {
@@ -64,17 +64,19 @@ $("#createRoomBtn").addEventListener("click", async () => {
       body:JSON.stringify({
         hostName:state.name,
         job:state.job,
-        maxPlayers:Number($("#maxPlayers").value),
-        difficulty:$("#difficulty").value
+        maxPlayers:3,
+        difficulty:$("#difficulty").value,
+        training
       })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "建立失敗");
     joinRoom(data.id);
   } catch (e) { toast(e.message); }
-});
+}
+$("#createRoomBtn").addEventListener("click", () => createRoom(false));
+$("#trainingRoomBtn").addEventListener("click", () => createRoom(true));
 
-$("#refreshRoomsBtn").addEventListener("click", refreshRooms);
 async function refreshRooms() {
   try {
     const res = await fetch("/api/rooms");
@@ -88,12 +90,12 @@ async function refreshRooms() {
     rooms.forEach(r => {
       const el = document.createElement("div");
       el.className = "room-item";
-      el.innerHTML = '<div class="room-meta"><b>房間 '+r.id+'</b><small>'+DIFF_NAME[r.difficulty]+' · '+r.players+'/'+r.maxPlayers+' 人</small></div>';
+      el.innerHTML = '<div class="room-meta"><b>'+escapeHtml(r.hostName)+'的房間</b></div>';
       const btn = document.createElement("button");
       btn.className = "primary";
       btn.textContent = "加入";
       btn.onclick = () => {
-        if (!state.job) return toast("CLASS");
+        if (!state.job) return toast("請選擇職業");
         joinRoom(r.id);
       };
       el.appendChild(btn);
@@ -190,7 +192,7 @@ function renderRoom(scores) {
     $("#resultPanel").classList.add("hidden");
     $("#roundText").textContent = "等待";
     $("#timer").textContent = "60";
-    $("#waitingText").textContent = r.players.length+"/"+r.maxPlayers+" 人";
+    $("#waitingText").textContent = r.players.length+"/3 人";
     const me = r.players.find(p => p.id === state.playerId);
     $("#startBtn").classList.toggle("hidden", !(me?.host && r.players.length >= 2));
     return;
