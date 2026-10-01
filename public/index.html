@@ -11,15 +11,17 @@
   <main id="app">
     <section id="homePage" class="page active home-page">
       <div class="shell home-shell">
-        <img class="hero-img" src="/assets/home.png" alt="Grid Conquest">
-        <div class="home-controls">
-          <label class="field name-field">
-            <span>PLAYER NAME</span>
-            <input id="playerName" maxlength="12" autocomplete="nickname" placeholder="輸入名字">
-          </label>
-          <button id="fightBtn" class="fight-btn" type="button" aria-label="進入遊戲">
-            <img src="/assets/fight.png" alt="FIGHT">
-          </button>
+        <div class="hero-stage">
+          <img class="hero-img" src="/assets/home.png" alt="Grid Conquest">
+          <div class="hero-overlay">
+            <label class="field name-field">
+              <span>PLAYER NAME</span>
+              <input id="playerName" maxlength="12" autocomplete="nickname" placeholder="輸入名字">
+            </label>
+            <button id="fightBtn" class="fight-btn" type="button" aria-label="進入遊戲">
+              <img src="/assets/fight.png" alt="FIGHT">
+            </button>
+          </div>
         </div>
       </div>
     </section>
