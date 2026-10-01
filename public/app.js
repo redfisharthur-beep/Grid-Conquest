@@ -1,7 +1,7 @@
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
-const JOB_NAME = {warrior:"WARRIOR",mage:"MAGE",archer:"ARCHER",priest:"PRIEST"};
-const DIFF_NAME = {basic:"BASIC",advanced:"ADV",challenge:"±"};
+const JOB_NAME = {warrior:"戰士",mage:"法師",archer:"弓手",priest:"牧師"};
+const DIFF_NAME = {basic:"基本",advanced:"進階",challenge:"挑戰"};
 
 const state = {
   name: localStorage.getItem("gc_name") || "",
@@ -37,10 +37,9 @@ function requireIdentity() {
 
 $("#fightBtn").addEventListener("click", () => {
   const name = $("#playerName").value.trim();
-  if (!name) return toast("NAME");
+  if (!name) return toast("請輸入名字");
   state.name = name.slice(0,12);
   saveIdentity();
-  $("#lobbyName").textContent = state.name;
   page("lobbyPage");
   refreshRooms();
 });
@@ -57,7 +56,7 @@ $$(".class-card").forEach(card => {
 });
 
 $("#createRoomBtn").addEventListener("click", async () => {
-  if (!state.job) return toast("CLASS");
+  if (!state.job) return toast("請選擇職業");
   try {
     const res = await fetch("/api/rooms", {
       method:"POST",
@@ -70,7 +69,7 @@ $("#createRoomBtn").addEventListener("click", async () => {
       })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "ERROR");
+    if (!res.ok) throw new Error(data.error || "建立失敗");
     joinRoom(data.id);
   } catch (e) { toast(e.message); }
 });
@@ -83,16 +82,16 @@ async function refreshRooms() {
     const list = $("#roomList");
     list.innerHTML = "";
     if (!rooms.length) {
-      list.innerHTML = '<div class="room-item"><span>—</span></div>';
+      list.innerHTML = '<div class="room-item"><span>目前沒有房間</span></div>';
       return;
     }
     rooms.forEach(r => {
       const el = document.createElement("div");
       el.className = "room-item";
-      el.innerHTML = '<div class="room-meta"><b>'+r.id+'</b><small>'+DIFF_NAME[r.difficulty]+' · '+r.players+'/'+r.maxPlayers+'</small></div>';
+      el.innerHTML = '<div class="room-meta"><b>房間 '+r.id+'</b><small>'+DIFF_NAME[r.difficulty]+' · '+r.players+'/'+r.maxPlayers+' 人</small></div>';
       const btn = document.createElement("button");
       btn.className = "primary";
-      btn.textContent = "JOIN";
+      btn.textContent = "加入";
       btn.onclick = () => {
         if (!state.job) return toast("CLASS");
         joinRoom(r.id);
@@ -100,7 +99,7 @@ async function refreshRooms() {
       el.appendChild(btn);
       list.appendChild(el);
     });
-  } catch { toast("ERROR"); }
+  } catch { toast("讀取失敗"); }
 }
 
 function joinRoom(id) {
@@ -110,7 +109,7 @@ function joinRoom(id) {
   state.playerId = null;
   state.room = null;
   page("gamePage");
-  $("#roomTitle").textContent = "" + id;
+  $("#roomTitle").textContent = "房間 " + id;
   $("#waitingPanel").classList.remove("hidden");
   $("#battlePanel").classList.add("hidden");
   $("#resultPanel").classList.add("hidden");
@@ -133,10 +132,10 @@ function joinRoom(id) {
     }
     if (msg.type === "answerResult") {
       if (msg.correct) {
-        $("#answerState").textContent = msg.claims === 2 ? "✓ ×2" : "✓ ×1";
+        $("#answerState").textContent = msg.claims === 2 ? "答對，可佔 2 格" : "答對，可佔 1 格";
         $("#answerInput").disabled = true;
       } else {
-        $("#answerState").textContent = "×";
+        $("#answerState").textContent = "答錯";
         $("#answerInput").disabled = true;
       }
       renderBoard();
@@ -144,14 +143,14 @@ function joinRoom(id) {
     }
     if (msg.type === "claimError") toast(msg.message);
     if (msg.type === "timeout") {
-      $("#answerState").textContent = "TIME";
+      $("#answerState").textContent = "時間到";
       $("#answerInput").disabled = true;
     }
   };
   ws.onclose = () => {
-    if (pageIs("gamePage") && state.room?.state !== "finished") toast("OFFLINE");
+    if (pageIs("gamePage") && state.room?.state !== "finished") toast("已離開房間");
   };
-  ws.onerror = () => toast("無法JOIN房間");
+  ws.onerror = () => toast("無法加入房間");
 }
 
 function pageIs(id) { return $("#"+id).classList.contains("active"); }
@@ -164,7 +163,7 @@ $("#answerForm").addEventListener("submit", e => {
   e.preventDefault();
   if (!state.room || state.room.state !== "playing") return;
   const raw = $("#answerInput").value.trim();
-  if (!/^-?\d+$/.test(raw)) return toast("NUMBER");
+  if (!/^-?\d+$/.test(raw)) return toast("請輸入整數");
   state.ws?.send(JSON.stringify({type:"answer", answer:Number(raw)}));
 });
 
@@ -189,9 +188,9 @@ function renderRoom(scores) {
     $("#waitingPanel").classList.remove("hidden");
     $("#battlePanel").classList.add("hidden");
     $("#resultPanel").classList.add("hidden");
-    $("#roundText").textContent = "WAIT";
+    $("#roundText").textContent = "等待";
     $("#timer").textContent = "60";
-    $("#waitingText").textContent = ""+r.players.length+"/"+r.maxPlayers+"";
+    $("#waitingText").textContent = r.players.length+"/"+r.maxPlayers+" 人";
     const me = r.players.find(p => p.id === state.playerId);
     $("#startBtn").classList.toggle("hidden", !(me?.host && r.players.length >= 2));
     return;
@@ -201,7 +200,7 @@ function renderRoom(scores) {
     $("#waitingPanel").classList.add("hidden");
     $("#battlePanel").classList.remove("hidden");
     $("#resultPanel").classList.add("hidden");
-    $("#roundText").textContent = "R"+r.round+"/5";
+    $("#roundText").textContent = "第 "+r.round+"/5 回合";
     $("#questionText").textContent = r.question?.text || "--";
     syncAnswerUI();
     startTimer(r.deadline);
@@ -213,7 +212,7 @@ function renderRoom(scores) {
     $("#waitingPanel").classList.add("hidden");
     $("#battlePanel").classList.add("hidden");
     $("#resultPanel").classList.remove("hidden");
-    $("#roundText").textContent = "END";
+    $("#roundText").textContent = "結算";
     $("#timer").textContent = "0";
     renderResults(scores || []);
   }
@@ -231,10 +230,10 @@ function syncAnswerUI() {
       input.disabled = false;
       setTimeout(() => input.focus(), 50);
     }
-    $("#answerState").textContent = "READY";
+    $("#answerState").textContent = "作答";
   } else if (me.status === "claiming") {
     input.disabled = true;
-    $("#answerState").textContent = me.claimRemaining === 2 ? "CLAIM ×2" : "CLAIM";
+    $("#answerState").textContent = me.claimRemaining === 2 ? "請佔 2 格" : "請選 1 格";
   } else {
     input.disabled = true;
   }
@@ -251,7 +250,7 @@ function renderPlayers() {
   });
 }
 function statusText(s) {
-  return ({waiting:"WAIT",answering:"Q",claiming:"CLAIM",done:"OK"})[s] || s;
+  return ({waiting:"等待",answering:"答題",claiming:"佔領",done:"完成"})[s] || s;
 }
 
 function renderBoard() {
@@ -290,7 +289,7 @@ function renderResults(scores) {
   scores.forEach((x,i) => {
     const row = document.createElement("div");
     row.className = "result-row";
-    row.innerHTML = "<span>"+(i+1)+". "+escapeHtml(x.name)+" · "+JOB_NAME[x.job]+"</span><b>"+x.score+" PT</b>";
+    row.innerHTML = "<span>"+(i+1)+". "+escapeHtml(x.name)+" · "+JOB_NAME[x.job]+"</span><b>"+x.score+" 分</b>";
     box.appendChild(row);
   });
 }
