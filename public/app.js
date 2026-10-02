@@ -135,7 +135,7 @@ function joinRoom(id) {
     }
     if (msg.type === "answerResult") {
       if (msg.correct) {
-        $("#answerState").textContent = msg.claims === 2 ? "答對　請選2格" : "答對　請選一格";
+        $("#answerState").textContent = "答對　等待其他玩家完成";
         $("#answerInput").disabled = true;
       } else {
         $("#answerState").textContent = "答錯　正解：" + msg.answer;
@@ -148,6 +148,9 @@ function joinRoom(id) {
     if (msg.type === "timeout") {
       $("#answerState").textContent = "時間到";
       $("#answerInput").disabled = true;
+    }
+    if (msg.type === "claimTimeout") {
+      $("#answerState").textContent = "選擇時間到";
     }
   };
   ws.onclose = () => {
@@ -242,9 +245,12 @@ function syncAnswerUI() {
       setTimeout(() => input.focus(), 50);
     }
     $("#answerState").textContent = "";
+  } else if (me.status === "queued") {
+    input.disabled = true;
+    $("#answerState").textContent = "答對　等待輪到你選擇";
   } else if (me.status === "claiming") {
     input.disabled = true;
-    $("#answerState").textContent = me.claimRemaining === 2 ? "答對　請選2格" : "答對　請選一格";
+    $("#answerState").textContent = me.claimRemaining === 2 ? "請選2格　5秒" : "請選一格　5秒";
   } else {
     input.disabled = true;
   }
