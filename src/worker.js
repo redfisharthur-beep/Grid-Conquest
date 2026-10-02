@@ -522,8 +522,31 @@ export class GameHub {
   }
 
   advanceRound(room) {
-    if (room.round >= 7) this.startFinalHold(room);
-    else this.startRound(room);
+    if (room.round >= 7) {
+      this.startFinalHold(room);
+    } else if (room.round === 6) {
+      this.startLastRoundAlert(room);
+    } else {
+      this.startRound(room);
+    }
+  }
+
+  startLastRoundAlert(room) {
+    if (room.state !== "playing") return;
+    room.phase = "lastRoundAlert";
+    room.question = null;
+    room.currentClaimPlayerId = null;
+    room.botClaimDue = 0;
+    room.deadline = Date.now() + 2000;
+    for (const p of room.players) {
+      p.status = "done";
+      p.claimRemaining = 0;
+      p.lockNextClaim = false;
+      p.botDue = 0;
+      this.send(p, {type:"lastRoundAlert"});
+    }
+    this.broadcast(room);
+    this.scheduleAlarm();
   }
 
   startFinalHold(room) {
@@ -552,7 +575,7 @@ export class GameHub {
       return false;
     }
     if (!Number.isInteger(index) || index < 0 || index > 8) return false;
-    if (room.roundTouched?.[index]) {
+    if (room.round !== 7 && room.roundTouched?.[index]) {
       if (notify) this.send(p, {type:"claimError", message:"此格本回合已被佔領，下一回合才能再爭奪"});
       return false;
     }
@@ -652,7 +675,7 @@ export class GameHub {
     const choices = [];
     for (let i=0;i<9;i++) {
       const c = room.board[i];
-      if (room.roundTouched?.[i]) continue;
+      if (room.round !== 7 && room.roundTouched?.[i]) continue;
       if (c.owner === p.id) continue;
       if (c.locked && c.owner !== p.id && !(p.job === "priest" && i === 4)) continue;
       let score = Math.random();
@@ -728,7 +751,7 @@ export class GameHub {
       const middle = room.board[m];
       if (!middle.owner || middle.owner === playerId) continue;
       if (middle.locked) continue;
-      if (room.roundTouched?.[m]) continue;
+      if (room.round !== 7 && room.roundTouched?.[m]) continue;
 
       room.board[m] = {owner:playerId, locked:false};
       room.roundTouched[m] = true;
@@ -741,7 +764,7 @@ export class GameHub {
   randomBonusClaim(room, playerId) {
     const targets = room.board
       .map((c,i) => ({c,i}))
-      .filter(x => x.c.owner !== playerId && !x.c.locked && !room.roundTouched?.[x.i]);
+      .filter(x => x.c.owner !== playerId && !x.c.locked && (room.round === 7 || !room.roundTouched?.[x.i]));
     if (!targets.length) return false;
     const pick = targets[Math.floor(Math.random()*targets.length)].i;
     room.board[pick] = {owner:playerId, locked:false};
@@ -864,6 +887,11 @@ export class GameHub {
           }
           this.broadcast(room);
           this.beginClaimPhase(room);
+        }
+      } else if (room.phase === "lastRoundAlert") {
+        if (room.deadline && room.deadline <= now) {
+          room.deadline = 0;
+          this.startRound(room);
         }
       } else if (room.phase === "finalHold") {
         if (room.deadline && room.deadline <= now) {
