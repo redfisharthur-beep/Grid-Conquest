@@ -357,7 +357,7 @@ function renderBoard() {
       me?.status === "claiming" &&
       r?.currentClaimPlayerId === state.playerId &&
       c.owner !== state.playerId &&
-      !(c.locked && c.owner !== state.playerId);
+      (!(c.locked && c.owner !== state.playerId) || (me?.job === "priest" && i === 4));
     if (canClaim) btn.classList.add("claimable");
     btn.disabled = !canClaim;
     btn.innerHTML = owner ? '<span class="owner">'+escapeHtml(owner.name)+'</span>' : "";
