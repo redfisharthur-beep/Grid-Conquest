@@ -125,7 +125,8 @@ export class GameHub {
     return {
       id:crypto.randomUUID(), name, job, isBot, host, ws,
       status:"waiting", correctCount:0, claimRemaining:0,
-      lockNextClaim:false, mageUsed:false, botDue:0
+      lockNextClaim:false, mageUsed:false, botDue:0,
+      totalAnswers:0, correctAnswers:0, totalAnswerMs:0, answerStartedAt:0
     };
   }
 
@@ -137,6 +138,10 @@ export class GameHub {
       p.lockNextClaim = false;
       p.mageUsed = false;
       p.botDue = 0;
+      p.totalAnswers = 0;
+      p.correctAnswers = 0;
+      p.totalAnswerMs = 0;
+      p.answerStartedAt = 0;
     }
   }
 
@@ -168,7 +173,10 @@ export class GameHub {
 
   resolveAnswer(room, p, correct, notify=false) {
     if (p.status !== "answering") return;
+    p.totalAnswers += 1;
+    p.totalAnswerMs += Math.max(0, Math.min(60000, Date.now() - (p.answerStartedAt || Date.now())));
     if (correct) {
+      p.correctAnswers += 1;
       p.correctCount += 1;
       p.status = "claiming";
       p.claimRemaining = (p.job === "archer" && p.correctCount === 3) ? 2 : 1;
@@ -178,7 +186,7 @@ export class GameHub {
     } else {
       p.status = "done";
       p.claimRemaining = 0;
-      if (notify) this.send(p, {type:"answerResult", correct:false});
+      if (notify) this.send(p, {type:"answerResult", correct:false, answer:room.question?.answer});
     }
     this.broadcast(room);
     this.checkRound(room);
@@ -218,13 +226,14 @@ export class GameHub {
 
   startRound(room) {
     room.round += 1;
-    if (room.round > 5) return this.finish(room);
+    if (room.round > 10) return this.finish(room);
     room.question = makeQuestion(room.difficulty);
     room.deadline = Date.now() + 60000;
     for (const p of room.players) {
       p.status = "answering";
       p.claimRemaining = 0;
       p.lockNextClaim = false;
+      p.answerStartedAt = Date.now();
       p.botDue = p.isBot ? Date.now() + rand(900, 3500) : 0;
     }
     this.broadcast(room);
@@ -269,7 +278,7 @@ export class GameHub {
   checkRound(room) {
     if (room.players.length < 2) return;
     if (room.players.every(p => p.status === "done")) {
-      if (room.round >= 5) this.finish(room);
+      if (room.round >= 10) this.finish(room);
       else this.startRound(room);
     }
   }
@@ -322,7 +331,11 @@ export class GameHub {
         if (i === 4 && p.job === "priest") score += 5;
         else score += i === 4 ? 2 : 1;
       });
-      return {id:p.id,name:p.name,job:p.job,score};
+      const occupiedCells = room.board.filter(c => c.owner === p.id).length;
+      return {
+        id:p.id,name:p.name,job:p.job,score,occupiedCells,
+        totalAnswers:p.totalAnswers,correctAnswers:p.correctAnswers,totalAnswerMs:p.totalAnswerMs
+      };
     }).sort((a,b) => b.score-a.score);
   }
 
@@ -340,7 +353,8 @@ export class GameHub {
       board:room.board,
       players:room.players.map((p,i) => ({
         id:p.id,name:p.name,job:p.job,host:p.host,isBot:!!p.isBot,status:p.status,
-        correctCount:p.correctCount,claimRemaining:p.claimRemaining,mageUsed:!!p.mageUsed,colorIndex:i
+        correctCount:p.correctCount,claimRemaining:p.claimRemaining,mageUsed:!!p.mageUsed,colorIndex:i,
+        totalAnswers:p.totalAnswers,correctAnswers:p.correctAnswers,totalAnswerMs:p.totalAnswerMs
       }))
     };
   }
@@ -387,13 +401,17 @@ export class GameHub {
       if (room.state === "playing" && room.deadline && room.deadline <= now) {
         for (const p of room.players) {
           if (p.status !== "done") {
+            if (p.status === "answering") {
+              p.totalAnswers += 1;
+              p.totalAnswerMs += 60000;
+            }
             p.status = "done";
             p.claimRemaining = 0;
             p.botDue = 0;
             this.send(p, {type:"timeout"});
           }
         }
-        if (room.round >= 5) this.finish(room);
+        if (room.round >= 10) this.finish(room);
         else this.startRound(room);
       }
     }
@@ -458,9 +476,9 @@ function makeQuestion(level) {
       const op1=Math.random()<.5?"+":"-",op2=Math.random()<.5?"+":"-";
       const answer=evalThree(a,op1,b,op2,c);
       if (answer===null || !Number.isInteger(answer) || answer<0) continue;
-      return {text:a+" "+op1+" "+b+" "+op2+" "+c+" = ?",answer};
+      return {text:a+" "+op1+" "+b+" "+op2+" "+c+"",answer};
     }
-    return {text:"12 - 5 + 8 = ?",answer:15};
+    return {text:"12 - 5 + 8",answer:15};
   }
   if (level === "advanced") {
     for (let n=0;n<1000;n++) {
@@ -468,18 +486,18 @@ function makeQuestion(level) {
       const op1=["+","-","×","÷"][rand(0,3)],op2=["+","-","×","÷"][rand(0,3)];
       const value=evalThree(a,op1,b,op2,c);
       if (value===null || !Number.isInteger(value) || value<0) continue;
-      return {text:a+" "+op1+" "+b+" "+op2+" "+c+" = ?",answer:value};
+      return {text:a+" "+op1+" "+b+" "+op2+" "+c+"",answer:value};
     }
-    return {text:"18 ÷ 3 + 7 = ?",answer:13};
+    return {text:"18 ÷ 3 + 7",answer:13};
   }
   for (let n=0;n<1200;n++) {
     const a=rand(-20,20),b=rand(-20,20),c=rand(-20,20);
     const op1=["+","-","×","÷"][rand(0,3)],op2=["+","-","×","÷"][rand(0,3)];
     const value=evalThree(a,op1,b,op2,c);
     if (value===null || !Number.isInteger(value)) continue;
-    return {text:showNumber(a)+" "+op1+" "+showNumber(b)+" "+op2+" "+showNumber(c)+" = ?",answer:value};
+    return {text:showNumber(a)+" "+op1+" "+showNumber(b)+" "+op2+" "+showNumber(c)+"",answer:value};
   }
-  return {text:"(-8) + 12 - 5 = ?",answer:-1};
+  return {text:"(-8) + 12 - 5",answer:-1};
 }
 
 function evalThree(a,op1,b,op2,c) {
