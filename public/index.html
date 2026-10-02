@@ -7,7 +7,7 @@
   <title>Grid Conquest</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -103,20 +103,18 @@
           <div id="questionBox" class="question-box">
             <div id="questionText" class="question">--</div>
             <form id="answerForm" class="answer-row">
-              <input id="answerInput" inputmode="numeric" autocomplete="off" placeholder="?">
+              <input id="answerInput" inputmode="numeric" autocomplete="off" placeholder="">
               <button class="primary" type="submit">送出</button>
             </form>
-            <div id="answerState" class="answer-state">作答</div>
+            <div id="answerState" class="answer-state"></div>
           </div>
 
           <div class="board-wrap">
             <div id="board" class="board" aria-label="3乘3搶地盤棋盤"></div>
-            <div class="board-note">□ 1　■ 2</div>
           </div>
         </div>
 
         <div id="resultPanel" class="panel result-panel hidden">
-          <img class="winner-img" src="/assets/winner.png" alt="Winner">
           <div id="resultList"></div>
           <button id="backLobbyBtn" class="primary" type="button">回大廳</button>
         </div>
