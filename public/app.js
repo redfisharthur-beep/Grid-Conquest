@@ -253,7 +253,9 @@ function syncAnswerUI() {
     $("#answerState").textContent = "答對　等待輪到你選擇";
   } else if (me.status === "claiming") {
     input.disabled = true;
-    $("#answerState").textContent = me.claimRemaining === 2 ? "請選2格　5秒" : "請選一格　5秒";
+    $("#answerState").textContent = state.room.currentClaimPlayerId === state.playerId
+      ? (me.claimRemaining === 2 ? "輪到你　請選2格　5秒" : "輪到你　請選一格　5秒")
+      : "等待上一位玩家完成選擇";
   } else {
     input.disabled = true;
   }
@@ -285,7 +287,10 @@ function renderBoard() {
     const btn = document.createElement("button");
     btn.className = "cell"+(i===4?" center":"")+(c.locked?" locked":"");
     if (owner) btn.classList.add("p"+owner.colorIndex);
-    const canClaim = me?.status === "claiming" && c.owner !== state.playerId && !(c.locked && c.owner !== state.playerId);
+    const canClaim = me?.status === "claiming" &&
+      r?.currentClaimPlayerId === state.playerId &&
+      c.owner !== state.playerId &&
+      !(c.locked && c.owner !== state.playerId);
     if (canClaim) btn.classList.add("claimable");
     btn.disabled = !canClaim;
     btn.innerHTML = owner ? '<span class="owner">'+escapeHtml(owner.name)+'</span>' : "";
