@@ -10,6 +10,48 @@ const SKILL_IMG = {
 };
 const DIFF_NAME = {basic:"基本",advanced:"進階",challenge:"挑戰"};
 
+const AUDIO = {
+  lobby:new Audio("/assets/audio/lobby.mp3"),
+  room:new Audio("/assets/audio/room.mp3")
+};
+Object.values(AUDIO).forEach(a => {
+  a.loop = true;
+  a.preload = "auto";
+  a.volume = 0.38;
+});
+let audioUnlocked = false;
+let currentBgm = null;
+
+function desiredBgm() {
+  if (pageIs("gamePage")) {
+    if (state.room?.state === "playing") return "room";
+    return "lobby";
+  }
+  return "lobby";
+}
+
+function playBgm(name = desiredBgm()) {
+  if (!audioUnlocked || !AUDIO[name]) return;
+  if (currentBgm === name && !AUDIO[name].paused) return;
+  for (const [key, audio] of Object.entries(AUDIO)) {
+    if (key === name) continue;
+    audio.pause();
+    audio.currentTime = 0;
+  }
+  currentBgm = name;
+  const audio = AUDIO[name];
+  audio.play().catch(() => {});
+}
+
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  playBgm();
+}
+
+document.addEventListener("pointerdown", unlockAudio, {once:true});
+document.addEventListener("keydown", unlockAudio, {once:true});
+
 const state = {
   name: localStorage.getItem("gc_name") || "",
   job: localStorage.getItem("gc_job") || "",
@@ -23,7 +65,8 @@ const state = {
 $("#playerName").value = state.name;
 
 function page(id) {
-  $$(".page").forEach(x => x.classList.toggle("active", x.id === id));
+  $(".page").forEach(x => x.classList.toggle("active", x.id === id));
+  requestAnimationFrame(() => playBgm());
 }
 function toast(msg) {
   const el = $("#toast");
@@ -137,6 +180,7 @@ function joinRoom(id) {
     if (msg.type === "state") {
       state.room = msg.room;
       renderRoom(msg.scores || null);
+      playBgm();
       return;
     }
     if (msg.type === "answerResult") {
