@@ -764,21 +764,35 @@ export class GameHub {
   }
 
   resolveSandwichCaptures(room, playerId) {
-    let captured = false;
-    const ownerPlayer = room.players.find(p => p.id === playerId);
+    // One manual claim can trigger at most one sandwich capture.
+    // If the new board position creates multiple valid captures at once,
+    // choose exactly one of those enemy cells at random.
+    const candidates = [];
+    const seen = new Set();
+
     for (const [a,m,b] of LINES) {
       if (room.board[a].owner !== playerId || room.board[b].owner !== playerId) continue;
       const middle = room.board[m];
       if (!middle.owner || middle.owner === playerId) continue;
       if (middle.locked) continue;
       if (room.round !== 7 && room.roundTouched?.[m]) continue;
-
-      room.board[m] = {owner:playerId, locked:false};
-      room.roundTouched[m] = true;
-      if (ownerPlayer) ownerPlayer.gainedCellsTotal = (ownerPlayer.gainedCellsTotal || 0) + 1;
-      captured = true;
+      if (seen.has(m)) continue;
+      seen.add(m);
+      candidates.push(m);
     }
-    return captured;
+
+    if (!candidates.length) return false;
+
+    const pick = candidates[Math.floor(Math.random() * candidates.length)];
+    room.board[pick] = {owner:playerId, locked:false};
+    room.roundTouched[pick] = true;
+
+    const ownerPlayer = room.players.find(p => p.id === playerId);
+    if (ownerPlayer) ownerPlayer.gainedCellsTotal = (ownerPlayer.gainedCellsTotal || 0) + 1;
+
+    // Do not run sandwich resolution again here.
+    // Captures and random bonus claims never recursively trigger more captures.
+    return true;
   }
 
   randomBonusClaim(room, playerId) {
