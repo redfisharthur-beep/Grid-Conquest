@@ -194,7 +194,8 @@ function renderRoom(scores) {
     $("#roundText").textContent = "";
     $("#roomTitle").textContent = "";
     $("#waitingText").textContent = "";
-    $("#timer").textContent = "60";
+    $("#timer").textContent = "";
+    $("#timer").classList.add("hidden");
     const me = r.players.find(p => p.id === state.playerId);
     $("#startBtn").classList.toggle("hidden", !(me?.host && r.players.length >= 2));
     return;
@@ -206,6 +207,7 @@ function renderRoom(scores) {
     $("#resultPanel").classList.add("hidden");
     $("#roundText").textContent = "第 "+r.round+"/5 回合";
     $("#difficultyText").textContent = DIFF_NAME[r.difficulty] || "";
+    $("#timer").classList.remove("hidden");
     $("#questionText").textContent = r.question?.text || "--";
     syncAnswerUI();
     startTimer(r.deadline);
@@ -218,6 +220,7 @@ function renderRoom(scores) {
     $("#battlePanel").classList.add("hidden");
     $("#resultPanel").classList.remove("hidden");
     $("#roundText").textContent = "結算";
+    $("#timer").classList.remove("hidden");
     $("#timer").textContent = "0";
     renderResults(scores || []);
   }
