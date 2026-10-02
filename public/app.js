@@ -2,6 +2,12 @@ const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const JOB_NAME = {warrior:"戰士",mage:"法師",archer:"弓手",priest:"牧師"};
 const JOB_IMG = {warrior:"/assets/warrior.png",mage:"/assets/mage.png",archer:"/assets/archer.png",priest:"/assets/priest.png"};
+const SKILL_IMG = {
+  warrior:"/assets/skill-warrior.png",
+  mage:"/assets/skill-mage.png",
+  archer:"/assets/skill-archer.png",
+  priest:"/assets/skill-priest.png"
+};
 const DIFF_NAME = {basic:"基本",advanced:"進階",challenge:"挑戰"};
 
 const state = {
@@ -144,6 +150,10 @@ function joinRoom(id) {
       renderBoard();
       return;
     }
+    if (msg.type === "skillEffect") {
+      showSkillEffect(msg.job);
+      return;
+    }
     if (msg.type === "claimError") toast(msg.message);
     if (msg.type === "timeout") {
       $("#answerState").textContent = "時間到";
@@ -157,6 +167,21 @@ function joinRoom(id) {
     if (pageIs("gamePage") && state.room?.state !== "finished") toast("已離開房間");
   };
   ws.onerror = () => toast("無法加入房間");
+}
+
+function showSkillEffect(job) {
+  const overlay = $("#skillOverlay");
+  const img = $("#skillOverlayImg");
+  const src = SKILL_IMG[job];
+  if (!overlay || !img || !src) return;
+  clearTimeout(showSkillEffect.t);
+  img.src = src;
+  img.alt = (JOB_NAME[job] || "") + "技能發動";
+  overlay.classList.remove("hidden");
+  showSkillEffect.t = setTimeout(() => {
+    overlay.classList.add("hidden");
+    img.src = "";
+  }, 2000);
 }
 
 function pageIs(id) { return $("#"+id).classList.contains("active"); }
@@ -287,7 +312,8 @@ function renderBoard() {
     const btn = document.createElement("button");
     btn.className = "cell"+(i===4?" center":"")+(c.locked?" locked":"");
     if (owner) btn.classList.add("p"+owner.colorIndex);
-    const canClaim = me?.status === "claiming" &&
+    const canClaim = r?.phase === "claiming" &&
+      me?.status === "claiming" &&
       r?.currentClaimPlayerId === state.playerId &&
       c.owner !== state.playerId &&
       !(c.locked && c.owner !== state.playerId);
