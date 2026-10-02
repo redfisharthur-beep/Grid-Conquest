@@ -77,7 +77,6 @@ async function loadLineProfile() {
       state.lineProfile = null;
       if (box) box.classList.add("hidden");
       if (loginBtn) loginBtn.classList.remove("hidden");
-      $("#lineLogoutBtn")?.classList.add("hidden");
       return;
     }
     state.lineProfile = data.profile;
@@ -91,14 +90,7 @@ async function loadLineProfile() {
       box.innerHTML = avatar;
       box.classList.remove("hidden");
     }
-    const logoutBtn = $("#lineLogoutBtn");
-    if (logoutBtn) {
-      logoutBtn.classList.remove("hidden");
-      logoutBtn.onclick = async () => {
-        await fetch("/api/auth/logout", {method:"POST", credentials:"include"});
-        location.reload();
-      };
-    }
+
   } catch {}
 }
 
