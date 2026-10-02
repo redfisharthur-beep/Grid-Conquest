@@ -264,3 +264,31 @@
   grid-column:1 / -1;
   justify-self:center;
 }
+
+/* Centered LINE avatar only */
+.line-profile{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  max-width:none;
+  margin:0 auto;
+  padding:0;
+  background:transparent;
+  border:0;
+}
+.line-profile img{
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  object-fit:cover;
+  display:block;
+  margin:0 auto;
+}
+.line-logout-btn{display:none!important}
+.hero-overlay:has(#lineProfile:not(.hidden)){
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+}
