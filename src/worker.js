@@ -143,7 +143,7 @@ export class GameHub {
       status:"waiting", correctCount:0, claimRemaining:0,
       lockNextClaim:false, botDue:0,
       totalAnswers:0, correctAnswers:0, totalAnswerMs:0, answerStartedAt:0,
-      archerBonusPending:false, mageLineTriggers:0
+      archerBonusPending:false, mageLineTriggers:0, gainedCellsTotal:0
     };
   }
 
@@ -164,6 +164,7 @@ export class GameHub {
       p.answerStartedAt = 0;
       p.archerBonusPending = false;
       p.mageLineTriggers = 0;
+      p.gainedCellsTotal = 0;
     }
   }
 
@@ -339,6 +340,7 @@ export class GameHub {
     cell.owner = p.id;
     cell.locked = !!p.lockNextClaim;
     room.roundTouched[index] = true;
+    p.gainedCellsTotal = (p.gainedCellsTotal || 0) + 1;
     p.claimRemaining -= 1;
 
     let skillJob = warriorSkill ? "warrior" : (priestSkill ? "priest" : null);
@@ -453,6 +455,7 @@ export class GameHub {
 
   resolveSandwichCaptures(room, playerId) {
     let captured = false;
+    const ownerPlayer = room.players.find(p => p.id === playerId);
     for (const [a,m,b] of LINES) {
       if (room.board[a].owner !== playerId || room.board[b].owner !== playerId) continue;
       const middle = room.board[m];
@@ -462,6 +465,7 @@ export class GameHub {
 
       room.board[m] = {owner:playerId, locked:false};
       room.roundTouched[m] = true;
+      if (ownerPlayer) ownerPlayer.gainedCellsTotal = (ownerPlayer.gainedCellsTotal || 0) + 1;
       captured = true;
     }
     return captured;
@@ -475,6 +479,8 @@ export class GameHub {
     const pick = targets[Math.floor(Math.random()*targets.length)].i;
     room.board[pick] = {owner:playerId, locked:false};
     room.roundTouched[pick] = true;
+    const ownerPlayer = room.players.find(p => p.id === playerId);
+    if (ownerPlayer) ownerPlayer.gainedCellsTotal = (ownerPlayer.gainedCellsTotal || 0) + 1;
     this.checkFullBoardWinner(room);
     return true;
   }
@@ -501,6 +507,7 @@ export class GameHub {
       const occupiedCells = room.board.filter(c => c.owner === p.id).length;
       return {
         id:p.id,name:p.name,job:p.job,score,occupiedCells,
+        gainedCellsTotal:p.gainedCellsTotal||0,
         totalAnswers:p.totalAnswers,correctAnswers:p.correctAnswers,totalAnswerMs:p.totalAnswerMs
       };
     }).sort((a,b) => b.score-a.score);
@@ -526,6 +533,7 @@ export class GameHub {
         id:p.id,name:p.name,job:p.job,host:p.host,isBot:!!p.isBot,status:p.status,
         correctCount:p.correctCount,claimRemaining:p.claimRemaining,colorIndex:i,
         mageLineTriggers:p.mageLineTriggers||0,archerBonusPending:!!p.archerBonusPending,
+        gainedCellsTotal:p.gainedCellsTotal||0,
         totalAnswers:p.totalAnswers,correctAnswers:p.correctAnswers,totalAnswerMs:p.totalAnswerMs
       }))
     };
