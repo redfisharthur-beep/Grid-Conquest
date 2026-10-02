@@ -141,67 +141,51 @@
 /* LINE Login */
 .line-login-btn{
   border:0;
-  background:#06C755;
-  color:#fff;
-  border-radius:12px;
-  padding:10px 18px;
-  font-size:15px;
-  min-width:160px;
+  background:transparent;
+  padding:0;
+  margin:0;
+  display:block;
+}
+.line-login-btn img{
+  display:block;
+  width:min(170px,52vw);
+  height:auto;
+  object-fit:contain;
 }
 .line-profile{
-  width:min(360px,92vw);
-  display:flex;
+  display:inline-flex;
   align-items:center;
-  gap:10px;
-  padding:9px 12px;
-  border-radius:14px;
-  background:rgba(255,255,255,.78);
-  border:1px solid rgba(90,84,76,.16);
-}
-.line-profile img{width:42px;height:42px;border-radius:50%;object-fit:cover;flex:0 0 auto}
-.line-profile>div{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
-.line-profile strong{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.line-profile small{font-size:11px;line-height:1.35;color:#6d675f}
-.line-profile button{border:0;background:transparent;color:#777;padding:6px;font-size:12px}
-
-/* Simplified LINE profile */
-.line-profile{
+  justify-content:center;
+  gap:8px;
   width:auto;
-  min-width:0;
-  padding:8px 12px;
-  gap:10px;
-  border-radius:14px;
+  max-width:220px;
+  padding:0;
+  background:transparent;
+  border:0;
 }
 .line-profile img{
-  width:42px;
-  height:42px;
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  object-fit:cover;
+  flex:0 0 auto;
 }
-.line-profile-main{
-  display:flex;
-  flex-direction:column;
-  align-items:flex-start;
-  justify-content:center;
-  gap:2px;
-  min-width:0;
-}
-.line-profile-main strong{
+.line-profile strong{
   font-size:16px;
   font-weight:500;
   line-height:1.2;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
-  max-width:180px;
+  max-width:160px;
 }
-.line-profile-main button{
+.line-logout-btn{
   border:0;
   background:transparent;
   padding:0;
+  margin-top:-10px;
   color:#8a8176;
   font-size:12px;
   line-height:1.2;
-  cursor:pointer;
 }
-.line-profile-main button:hover{
-  color:#5f5a52;
-}
+.line-logout-btn:hover{color:#5f5a52}
