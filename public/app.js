@@ -171,7 +171,7 @@ async function refreshRooms() {
     const list = $("#roomList");
     list.innerHTML = "";
     if (!rooms.length) {
-      list.innerHTML = '<div class="room-item"><span>目前沒有房間</span></div>';
+      list.innerHTML = '<div class="room-item empty-room-item"><span>目前沒有房間</span></div>';
       return;
     }
     rooms.forEach(r => {
