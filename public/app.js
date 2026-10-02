@@ -135,10 +135,10 @@ function joinRoom(id) {
     }
     if (msg.type === "answerResult") {
       if (msg.correct) {
-        $("#answerState").textContent = msg.claims === 2 ? "答對，可佔 2 格" : "答對，可佔 1 格";
+        $("#answerState").textContent = msg.claims === 2 ? "答對　請選2格" : "答對　請選一格";
         $("#answerInput").disabled = true;
       } else {
-        $("#answerState").textContent = "答錯";
+        $("#answerState").textContent = "答錯　正解：" + msg.answer;
         $("#answerInput").disabled = true;
       }
       renderBoard();
@@ -191,6 +191,7 @@ function renderRoom(scores) {
     $("#waitingPanel").classList.remove("hidden");
     $("#battlePanel").classList.add("hidden");
     $("#resultPanel").classList.add("hidden");
+    $("#playersBar").classList.remove("hidden");
     $("#roundText").textContent = "";
     $("#roomTitle").textContent = "";
     $("#waitingText").textContent = "";
@@ -205,10 +206,11 @@ function renderRoom(scores) {
     $("#waitingPanel").classList.add("hidden");
     $("#battlePanel").classList.remove("hidden");
     $("#resultPanel").classList.add("hidden");
-    $("#roundText").textContent = "第 "+r.round+"/5 回合";
+    $("#playersBar").classList.add("hidden");
+    $("#roundText").textContent = "";
     $("#difficultyText").textContent = DIFF_NAME[r.difficulty] || "";
     $("#timer").classList.remove("hidden");
-    $("#questionText").textContent = r.question?.text || "--";
+    $("#questionText").textContent = (r.question?.text || "--").replace(/\s*=\s*\?\s*$/, "");
     syncAnswerUI();
     startTimer(r.deadline);
     return;
@@ -219,9 +221,10 @@ function renderRoom(scores) {
     $("#waitingPanel").classList.add("hidden");
     $("#battlePanel").classList.add("hidden");
     $("#resultPanel").classList.remove("hidden");
-    $("#roundText").textContent = "結算";
-    $("#timer").classList.remove("hidden");
-    $("#timer").textContent = "0";
+    $("#playersBar").classList.add("hidden");
+    $("#roundText").textContent = "";
+    $("#difficultyText").textContent = "";
+    $("#timer").classList.add("hidden");
     renderResults(scores || []);
   }
 }
@@ -238,10 +241,10 @@ function syncAnswerUI() {
       input.disabled = false;
       setTimeout(() => input.focus(), 50);
     }
-    $("#answerState").textContent = "作答";
+    $("#answerState").textContent = "";
   } else if (me.status === "claiming") {
     input.disabled = true;
-    $("#answerState").textContent = me.claimRemaining === 2 ? "請佔 2 格" : "請選 1 格";
+    $("#answerState").textContent = me.claimRemaining === 2 ? "答對　請選2格" : "答對　請選一格";
   } else {
     input.disabled = true;
   }
@@ -297,8 +300,22 @@ function renderResults(scores) {
   box.innerHTML = "";
   scores.forEach((x,i) => {
     const row = document.createElement("div");
-    row.className = "result-row";
-    row.innerHTML = "<span>"+(i+1)+". "+escapeHtml(x.name)+" · "+JOB_NAME[x.job]+"</span><b>"+x.score+" 分</b>";
+    row.className = "result-card p"+i;
+    const accuracy = x.totalAnswers ? Math.round((x.correctAnswers / x.totalAnswers) * 100) : 0;
+    const seconds = (x.totalAnswerMs / 1000).toFixed(1);
+    row.innerHTML =
+      '<div class="result-visual">' +
+        '<div class="result-art-line">' +
+          '<img class="result-job-icon" src="'+(JOB_IMG[x.job] || "")+'" alt="'+escapeHtml(JOB_NAME[x.job] || "")+'">' +
+          (i === 0 ? '<img class="result-winner-icon" src="/assets/winner.png" alt="Winner">' : '') +
+        '</div>' +
+        '<div class="result-name">'+escapeHtml(x.name)+'</div>' +
+      '</div>' +
+      '<div class="result-stats">' +
+        '<div><span>答對率</span><strong>'+accuracy+'%</strong></div>' +
+        '<div><span>佔領格子數</span><strong>'+x.occupiedCells+'</strong></div>' +
+        '<div><span>總答題時間</span><strong>'+seconds+' 秒</strong></div>' +
+      '</div>';
     box.appendChild(row);
   });
 }
