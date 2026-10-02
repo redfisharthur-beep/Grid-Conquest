@@ -67,6 +67,30 @@ const state = {
 const playerNameInput = $("#playerName");
 if (playerNameInput) playerNameInput.value = state.name;
 
+function renderCareerPanel(profile = state.lineProfile) {
+  const title = $("#careerTitleText");
+  const games = $("#careerGames");
+  const wins = $("#careerWins");
+  const winRate = $("#careerWinRate");
+  const answerRate = $("#careerAnswerRate");
+  if (!title || !games || !wins || !winRate || !answerRate) return;
+
+  if (!profile) {
+    title.textContent = "未連結 LINE";
+    games.textContent = "0";
+    wins.textContent = "0";
+    winRate.textContent = "0%";
+    answerRate.textContent = "0%";
+    return;
+  }
+
+  title.textContent = profile.title || "初入格界";
+  games.textContent = String(profile.gamesPlayed || 0);
+  wins.textContent = String(profile.wins || 0);
+  winRate.textContent = String(profile.winRate || 0) + "%";
+  answerRate.textContent = String(profile.answerRate || 0) + "%";
+}
+
 async function loadLineProfile() {
   try {
     const res = await fetch("/api/auth/me", {credentials:"include"});
@@ -77,9 +101,11 @@ async function loadLineProfile() {
       state.lineProfile = null;
       if (box) box.classList.add("hidden");
       if (loginBtn) loginBtn.classList.remove("hidden");
+      renderCareerPanel(null);
       return;
     }
     state.lineProfile = data.profile;
+    renderCareerPanel(data.profile);
     state.name = data.profile.displayName || state.name;
     if (playerNameInput && !playerNameInput.value.trim()) playerNameInput.value = state.name;
     saveIdentity();
@@ -97,6 +123,7 @@ async function loadLineProfile() {
 $("#lineLoginBtn")?.addEventListener("click", () => {
   location.href = "/api/auth/line/login";
 });
+renderCareerPanel();
 loadLineProfile();
 
 function page(id) {
@@ -129,6 +156,7 @@ $("#fightBtn")?.addEventListener("click", () => {
   saveIdentity();
   page("lobbyPage");
   refreshRooms();
+  loadLineProfile();
 });
 $$("[data-go]").forEach(b => b.addEventListener("click", () => page(b.dataset.go)));
 
