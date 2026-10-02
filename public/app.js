@@ -335,8 +335,18 @@ function renderRoom(scores) {
     $("#roundText").textContent = "";
     $("#difficultyText").textContent = DIFF_NAME[r.difficulty] || "";
     $("#timer").classList.remove("hidden");
-    $("#questionText").textContent = (r.question?.text || "--").replace(/\s*=\s*\?\s*$/, "");
-    syncAnswerUI();
+
+    if (r.phase === "finalHold") {
+      $("#questionText").textContent = "最終布陣";
+      $("#answerForm").classList.add("hidden");
+      $("#answerState").textContent = "5秒後結算";
+      $("#answerInput").disabled = true;
+    } else {
+      $("#answerForm").classList.remove("hidden");
+      $("#questionText").textContent = (r.question?.text || "--").replace(/\s*=\s*\?\s*$/, "");
+      syncAnswerUI();
+    }
+
     startTimer(r.deadline);
     return;
   }
