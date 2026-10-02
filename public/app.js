@@ -273,6 +273,16 @@ function pageIs(id) {
   return !!el && el.classList.contains("active");
 }
 
+$("#gameBackBtn")?.addEventListener("click", () => {
+  try { state.ws?.close(); } catch {}
+  state.ws = null;
+  state.room = null;
+  state.roomId = null;
+  state.playerId = null;
+  page("lobbyPage");
+  refreshRooms();
+});
+
 $("#startBtn")?.addEventListener("click", () => {
   state.ws?.send(JSON.stringify({type:"start"}));
 });
@@ -386,8 +396,8 @@ function renderPlayers() {
       : career
         ? '<div class="player-record-card"><strong>'+escapeHtml(career.title || "初入格界")+'</strong>' +
           '<div><span>場次</span><b>'+career.gamesPlayed+'</b></div>' +
-          '<div><span>勝場</span><b>'+career.wins+'</b></div>' +
           '<div><span>勝率</span><b>'+career.winRate+'%</b></div>' +
+          '<div><span>累積獲得格子數</span><b>'+career.totalCellsGained+'</b></div>' +
           '<div><span>答對率</span><b>'+career.answerRate+'%</b></div></div>'
         : '<div class="player-record-card"><strong>未連結 LINE</strong><span>尚無遊戲紀錄</span></div>';
     el.innerHTML = '<div class="player-main"><img class="player-job-icon" src="'+img+'" alt="'+escapeHtml(JOB_NAME[p.job] || "")+'"><b>'+escapeHtml(p.name)+'</b></div><div class="player-record-space">'+recordHtml+'</div>';
