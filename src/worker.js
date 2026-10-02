@@ -623,7 +623,7 @@ export class GameHub {
 
     let skillJob = warriorSkill ? "warrior" : (priestSkill ? "priest" : null);
 
-    const lineCaptured = this.resolveSandwichCaptures(room, p.id);
+    const lineCaptured = this.resolveSandwichCaptures(room, p.id, index);
     if (p.job === "mage" && lineCaptured) {
       p.mageLineTriggers = (p.mageLineTriggers || 0) + 1;
       if (p.mageLineTriggers <= 3 && this.randomBonusClaim(room, p.id)) {
@@ -763,35 +763,40 @@ export class GameHub {
     }
   }
 
-  resolveSandwichCaptures(room, playerId) {
-    // One manual claim can trigger at most one sandwich capture.
-    // If the new board position creates multiple valid captures at once,
-    // choose exactly one of those enemy cells at random.
-    const candidates = [];
-    const seen = new Set();
+  resolveSandwichCaptures(room, playerId, claimedIndex) {
+    // Only the newly MANUALLY claimed cell may create captures.
+    // Check only lines passing through that cell, and capture every valid
+    // enemy middle cell created by this move at the same time.
+    const captures = new Set();
 
     for (const [a,m,b] of LINES) {
+      if (a !== claimedIndex && m !== claimedIndex && b !== claimedIndex) continue;
       if (room.board[a].owner !== playerId || room.board[b].owner !== playerId) continue;
+
       const middle = room.board[m];
       if (!middle.owner || middle.owner === playerId) continue;
+
+      // Warrior locked cells cannot be captured by sandwiching.
       if (middle.locked) continue;
+
+      // Rounds 1-6 still protect a cell already changed this round.
+      // Round 7 intentionally allows same-round recapture.
       if (room.round !== 7 && room.roundTouched?.[m]) continue;
-      if (seen.has(m)) continue;
-      seen.add(m);
-      candidates.push(m);
+
+      captures.add(m);
     }
 
-    if (!candidates.length) return false;
-
-    const pick = candidates[Math.floor(Math.random() * candidates.length)];
-    room.board[pick] = {owner:playerId, locked:false};
-    room.roundTouched[pick] = true;
+    if (!captures.size) return false;
 
     const ownerPlayer = room.players.find(p => p.id === playerId);
-    if (ownerPlayer) ownerPlayer.gainedCellsTotal = (ownerPlayer.gainedCellsTotal || 0) + 1;
+    for (const index of captures) {
+      room.board[index] = {owner:playerId, locked:false};
+      room.roundTouched[index] = true;
+      if (ownerPlayer) ownerPlayer.gainedCellsTotal = (ownerPlayer.gainedCellsTotal || 0) + 1;
+    }
 
-    // Do not run sandwich resolution again here.
-    // Captures and random bonus claims never recursively trigger more captures.
+    // Captured cells never trigger another capture pass.
+    // Skill bonus cells from Mage/Archer also never call this function.
     return true;
   }
 
