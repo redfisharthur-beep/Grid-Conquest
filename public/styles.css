@@ -533,3 +533,16 @@
   text-align:center;
   display:block;
 }
+
+/* Empty room state must be truly centered; cancel normal room-item button spacing */
+#roomList .empty-room-item{
+  justify-content:center !important;
+  padding-left:14px !important;
+  padding-right:14px !important;
+}
+#roomList .empty-room-item > span{
+  width:auto !important;
+  flex:0 0 auto;
+  margin:0 auto;
+  text-align:center !important;
+}
