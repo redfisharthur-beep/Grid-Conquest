@@ -394,14 +394,15 @@ function renderResults(scores) {
     row.innerHTML =
       '<div class="result-visual">' +
         '<div class="result-art-line">' +
-          '<img class="result-job-icon" src="'+(JOB_IMG[x.job] || "")+'" alt="'+escapeHtml(JOB_NAME[x.job] || "")+'">' +
           (i === 0 ? '<img class="result-winner-icon" src="/assets/winner.png" alt="Winner">' : '') +
+          '<img class="result-job-icon" src="'+(JOB_IMG[x.job] || "")+'" alt="'+escapeHtml(JOB_NAME[x.job] || "")+'">' +
         '</div>' +
         '<div class="result-name">'+escapeHtml(x.name)+'</div>' +
       '</div>' +
       '<div class="result-stats">' +
+        '<div><span>總得分</span><strong>'+x.score+'</strong></div>' +
         '<div><span>答對率</span><strong>'+accuracy+'%</strong></div>' +
-        '<div><span>佔領格子數</span><strong>'+x.occupiedCells+'</strong></div>' +
+        '<div><span>全部曾經取得的格子數</span><strong>'+(x.gainedCellsTotal ?? x.occupiedCells ?? 0)+'</strong></div>' +
         '<div><span>總答題時間</span><strong>'+seconds+' 秒</strong></div>' +
       '</div>';
     box.appendChild(row);
