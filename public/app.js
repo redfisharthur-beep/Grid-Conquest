@@ -243,6 +243,9 @@ function joinRoom(id) {
     if (msg.type === "claimTimeout") {
       $("#answerState").textContent = "選擇時間到";
     }
+    if (msg.type === "autoClaim") {
+      $("#answerState").textContent = msg.message || "已隨機佔領";
+    }
   };
   ws.onclose = () => {
     if (pageIs("gamePage") && state.room?.state !== "finished") toast("已離開房間");
@@ -363,7 +366,7 @@ function syncAnswerUI() {
   } else if (me.status === "claiming") {
     input.disabled = true;
     $("#answerState").textContent = state.room.currentClaimPlayerId === state.playerId
-      ? (me.claimRemaining === 2 ? "輪到你　請選2格　5秒" : "輪到你　請選一格　5秒")
+      ? (me.claimRemaining === 2 ? "輪到你　請選2格" : "輪到你　請選一格")
       : "等待上一位玩家完成選擇";
   } else {
     input.disabled = true;
