@@ -77,6 +77,7 @@ async function loadLineProfile() {
       state.lineProfile = null;
       if (box) box.classList.add("hidden");
       if (loginBtn) loginBtn.classList.remove("hidden");
+      $("#lineLogoutBtn")?.classList.add("hidden");
       return;
     }
     state.lineProfile = data.profile;
@@ -87,14 +88,16 @@ async function loadLineProfile() {
     if (box) {
       const p = data.profile;
       const avatar = p.pictureUrl ? '<img src="'+p.pictureUrl+'" alt="LINE頭像">' : '';
-      box.innerHTML = avatar +
-        '<div class="line-profile-main"><strong>'+escapeHtml(p.displayName)+'</strong>' +
-        '<button id="lineLogoutBtn" type="button">登出</button></div>';
+      box.innerHTML = avatar + '<strong>'+escapeHtml(p.displayName)+'</strong>';
       box.classList.remove("hidden");
-      $("#lineLogoutBtn")?.addEventListener("click", async () => {
+    }
+    const logoutBtn = $("#lineLogoutBtn");
+    if (logoutBtn) {
+      logoutBtn.classList.remove("hidden");
+      logoutBtn.onclick = async () => {
         await fetch("/api/auth/logout", {method:"POST", credentials:"include"});
         location.reload();
-      });
+      };
     }
   } catch {}
 }
