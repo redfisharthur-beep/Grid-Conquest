@@ -2,6 +2,12 @@ const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const JOB_NAME = {warrior:"戰士",mage:"法師",archer:"弓手",priest:"牧師"};
 const JOB_IMG = {warrior:"/assets/warrior.png",mage:"/assets/mage.png",archer:"/assets/archer.png",priest:"/assets/priest.png"};
+const HEAD_IMG = {
+  warrior:"/assets/headwarrior.png",
+  mage:"/assets/headmage.png",
+  priest:"/assets/headpriest.png",
+  archer:"/assets/headarcher.png"
+};
 const SKILL_IMG = {
   warrior:"/assets/skill-warrior.png",
   mage:"/assets/skill-mage.png",
@@ -460,7 +466,9 @@ function renderBoard() {
       (!(c.locked && c.owner !== state.playerId) || (me?.job === "priest" && i === 4));
     if (canClaim) btn.classList.add("claimable");
     btn.disabled = !canClaim;
-    btn.innerHTML = owner ? '<span class="owner">'+escapeHtml(owner.name)+'</span>' : "";
+    btn.innerHTML = owner
+      ? '<span class="cell-owner"><img class="cell-owner-head" src="'+(HEAD_IMG[owner.job] || "")+'" alt=""><span class="owner">'+escapeHtml(owner.name)+'</span></span>'
+      : "";
     btn.onclick = () => state.ws?.send(JSON.stringify({type:"claim", index:i}));
     board.appendChild(btn);
   }
