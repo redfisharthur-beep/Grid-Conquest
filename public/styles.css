@@ -477,3 +477,52 @@
     outline-offset:-4px;
   }
 }
+
+/* Final round: fullscreen board-only hold */
+.game-page.final-board-mode{
+  padding:0;
+}
+.game-page.final-board-mode .game-back-row,
+.game-page.final-board-mode .game-head,
+.game-page.final-board-mode .players-bar,
+.game-page.final-board-mode .question-box,
+.game-page.final-board-mode .waiting-panel,
+.game-page.final-board-mode .result-panel,
+.game-page.final-board-mode .toast{
+  display:none !important;
+}
+.game-page.final-board-mode .game-shell{
+  width:100%;
+  max-width:none;
+  margin:0;
+}
+.game-page.final-board-mode .battle{
+  position:fixed;
+  inset:0;
+  z-index:9000;
+  display:flex !important;
+  align-items:center;
+  justify-content:center;
+  padding:2vh 2vw;
+  background:#E9E2D6;
+}
+.game-page.final-board-mode .board-wrap{
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.game-page.final-board-mode .board{
+  width:min(94vw,94vh);
+  max-width:none;
+  height:min(94vw,94vh);
+  aspect-ratio:1/1;
+  gap:clamp(6px,1.2vmin,14px);
+}
+.game-page.final-board-mode .cell{
+  border-radius:clamp(12px,2vmin,24px);
+}
+.game-page.final-board-mode .cell .owner{
+  font-size:clamp(18px,3.5vmin,34px);
+}
