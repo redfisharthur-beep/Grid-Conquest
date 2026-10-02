@@ -204,3 +204,24 @@
   .hero-overlay{top:34.5%}
   .line-login-btn img{width:min(82px,25vw)}
 }
+
+/* Tighten LINE-to-Fight spacing */
+.hero-overlay{
+  gap:12px;
+}
+.fight-btn{
+  margin-top:-8px;
+}
+.fight-btn img{
+  width:min(160px,48vw);
+}
+@media(max-width:760px){
+  .hero-overlay{gap:10px}
+  .fight-btn{margin-top:-10px}
+  .fight-btn img{width:min(150px,46vw)}
+}
+@media(max-width:430px){
+  .hero-overlay{gap:9px}
+  .fight-btn{margin-top:-12px}
+  .fight-btn img{width:min(145px,44vw)}
+}
