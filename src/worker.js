@@ -459,7 +459,7 @@ export class GameHub {
     if (!room.claimQueue.length) {
       room.deadline = 0;
       this.broadcast(room);
-      return this.advanceRound(room);
+      return this.startRoundHold(room);
     }
 
     this.advanceClaimTurn(room);
@@ -501,7 +501,27 @@ export class GameHub {
     room.currentClaimPlayerId = null;
     room.botClaimDue = 0;
     room.deadline = 0;
-    this.advanceRound(room);
+    this.startRoundHold(room);
+  }
+
+  startClaimHold(room) {
+    if (room.state !== "playing") return;
+    room.phase = "claimHold";
+    room.currentClaimPlayerId = null;
+    room.botClaimDue = 0;
+    room.deadline = Date.now() + 1000;
+    this.broadcast(room);
+    this.scheduleAlarm();
+  }
+
+  startRoundHold(room) {
+    if (room.state !== "playing") return;
+    room.phase = "roundHold";
+    room.currentClaimPlayerId = null;
+    room.botClaimDue = 0;
+    room.deadline = Date.now() + 2000;
+    this.broadcast(room);
+    this.scheduleAlarm();
   }
 
   broadcastSkill(room, job, playerId) {
@@ -509,7 +529,7 @@ export class GameHub {
     for (const p of room.players) this.send(p, payload);
   }
 
-  pauseForSkill(room, job, playerId, resume="advanceClaimTurn") {
+  pauseForSkill(room, job, playerId, resume="startClaimHold") {
     this.broadcastSkill(room, job, playerId);
     room.phase = "skill";
     room.currentClaimPlayerId = null;
@@ -537,7 +557,7 @@ export class GameHub {
     room.question = null;
     room.currentClaimPlayerId = null;
     room.botClaimDue = 0;
-    room.deadline = Date.now() + 2000;
+    room.deadline = Date.now() + 3000;
     for (const p of room.players) {
       p.status = "done";
       p.claimRemaining = 0;
@@ -625,8 +645,8 @@ export class GameHub {
       p.status = "done";
       p.lockNextClaim = false;
       this.broadcast(room);
-      if (skillJob) this.pauseForSkill(room, skillJob, p.id, "advanceClaimTurn");
-      else this.advanceClaimTurn(room);
+      if (skillJob) this.pauseForSkill(room, skillJob, p.id, "startClaimHold");
+      else this.startClaimHold(room);
       return true;
     }
 
@@ -888,6 +908,17 @@ export class GameHub {
           this.broadcast(room);
           this.beginClaimPhase(room);
         }
+      } else if (room.phase === "claimHold") {
+        if (room.deadline && room.deadline <= now) {
+          room.deadline = 0;
+          room.phase = "claiming";
+          this.advanceClaimTurn(room);
+        }
+      } else if (room.phase === "roundHold") {
+        if (room.deadline && room.deadline <= now) {
+          room.deadline = 0;
+          this.advanceRound(room);
+        }
       } else if (room.phase === "lastRoundAlert") {
         if (room.deadline && room.deadline <= now) {
           room.deadline = 0;
@@ -904,7 +935,8 @@ export class GameHub {
           room.skillResume = null;
           room.deadline = 0;
           room.phase = "claiming";
-          if (resume === "advanceClaimTurn") this.advanceClaimTurn(room);
+          if (resume === "startClaimHold") this.startClaimHold(room);
+          else if (resume === "advanceClaimTurn") this.advanceClaimTurn(room);
           else if (resume === "advanceRound") this.advanceRound(room);
         }
       } else if (room.phase === "claiming") {
@@ -932,7 +964,7 @@ export class GameHub {
               current.lockNextClaim = false;
               this.send(current, {type:"claimTimeout"});
               this.broadcast(room);
-              this.advanceClaimTurn(room);
+              this.startClaimHold(room);
             } else if (autoClaimed && !current.isBot) {
               this.send(current, {type:"autoClaim", message:"未在時間內選擇，已隨機佔領"});
             }
