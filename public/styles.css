@@ -366,3 +366,8 @@
   .player-record-card>strong{font-size:15px}
   .player-record-card span,.player-record-card b{font-size:12px}
 }
+
+/* Center battle answer input */
+#answerInput{
+  text-align:center;
+}
