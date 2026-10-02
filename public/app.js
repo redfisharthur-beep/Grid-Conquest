@@ -88,9 +88,8 @@ async function loadLineProfile() {
       const p = data.profile;
       const avatar = p.pictureUrl ? '<img src="'+p.pictureUrl+'" alt="LINE頭像">' : '';
       box.innerHTML = avatar +
-        '<div><strong>'+escapeHtml(p.displayName)+'</strong>' +
-        '<small>'+escapeHtml(p.title)+'｜'+p.gamesPlayed+' 場｜'+p.wins+' 勝｜勝率 '+p.winRate+'%｜答對率 '+p.answerRate+'%</small></div>' +
-        '<button id="lineLogoutBtn" type="button">登出</button>';
+        '<div class="line-profile-main"><strong>'+escapeHtml(p.displayName)+'</strong>' +
+        '<button id="lineLogoutBtn" type="button">登出</button></div>';
       box.classList.remove("hidden");
       $("#lineLogoutBtn")?.addEventListener("click", async () => {
         await fetch("/api/auth/logout", {method:"POST", credentials:"include"});
