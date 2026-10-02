@@ -883,7 +883,7 @@ export class GameHub {
             p.status = "done";
             p.claimRemaining = 0;
             p.botDue = 0;
-            this.send(p, {type:"timeout"});
+            this.send(p, {type:"timeout", answer:room.question?.answer});
           }
           this.broadcast(room);
           this.beginClaimPhase(room);
