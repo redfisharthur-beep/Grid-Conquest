@@ -40,6 +40,7 @@ export class GameHub {
         raw.phase = "answering";
         raw.claimQueue = [];
         raw.claimIndex = -1;
+        raw.currentClaimPlayerId = null;
         this.rooms.set(id, raw);
       }
       this.prune();
@@ -77,6 +78,7 @@ export class GameHub {
         phase:"answering",
         claimQueue:[],
         claimIndex:-1,
+        currentClaimPlayerId:null,
         createdAt:Date.now()
       });
       await this.persist();
@@ -170,19 +172,21 @@ export class GameHub {
       if (room.state !== "playing" || p.status !== "answering" || !room.question) return;
       const value = Number(msg.answer);
       if (!Number.isFinite(value)) return;
-      this.resolveAnswer(room, p, value === room.question.answer, true);
+      this.resolveAnswer(room, p, value === room.question.answer, true, Date.now());
       return;
     }
 
     if (msg.type === "claim") this.claim(room, p, Number(msg.index), true);
   }
 
-  resolveAnswer(room, p, correct, notify=false) {
+  resolveAnswer(room, p, correct, notify=false, submittedAt=Date.now()) {
     if (p.status !== "answering") return;
-    const elapsed = Math.max(0, Math.min(60000, Date.now() - (p.answerStartedAt || Date.now())));
+    const safeSubmittedAt = Math.max(p.answerStartedAt || submittedAt, submittedAt);
+    const elapsed = Math.max(0, Math.min(60000, safeSubmittedAt - (p.answerStartedAt || safeSubmittedAt)));
     p.totalAnswers += 1;
     p.totalAnswerMs += elapsed;
     p.roundAnswerMs = elapsed;
+    p.roundSubmittedAt = safeSubmittedAt;
     p.botDue = 0;
 
     if (correct) {
@@ -207,7 +211,7 @@ export class GameHub {
     room.phase = "claiming";
     const correct = room.players
       .filter(p => p.status === "answered" && p.claimRemaining > 0)
-      .sort((a,b) => (b.roundAnswerMs - a.roundAnswerMs) || a.id.localeCompare(b.id));
+      .sort((a,b) => (b.roundSubmittedAt - a.roundSubmittedAt) || (b.roundAnswerMs - a.roundAnswerMs) || a.id.localeCompare(b.id));
 
     room.claimQueue = correct.map(p => p.id);
     room.claimIndex = -1;
@@ -237,6 +241,7 @@ export class GameHub {
       current.lockNextClaim = false;
     }
 
+    room.currentClaimPlayerId = null;
     room.claimIndex += 1;
     while (room.claimIndex < room.claimQueue.length) {
       const nextId = room.claimQueue[room.claimIndex];
@@ -247,6 +252,7 @@ export class GameHub {
       }
 
       p.status = "claiming";
+      room.currentClaimPlayerId = p.id;
       room.deadline = Date.now() + 5000;
       this.broadcast(room);
 
@@ -260,6 +266,7 @@ export class GameHub {
       return;
     }
 
+    room.currentClaimPlayerId = null;
     room.deadline = 0;
     this.advanceRound(room);
   }
@@ -270,7 +277,11 @@ export class GameHub {
   }
 
   claim(room, p, index, notify=false) {
-    if (room.state !== "playing" || p.status !== "claiming" || p.claimRemaining <= 0) return false;
+    if (room.state !== "playing" || room.phase !== "claiming") return false;
+    if (room.currentClaimPlayerId !== p.id || p.status !== "claiming" || p.claimRemaining <= 0) {
+      if (notify) this.send(p, {type:"claimError", message:"尚未輪到你選擇"});
+      return false;
+    }
     if (!Number.isInteger(index) || index < 0 || index > 8) return false;
     const cell = room.board[index];
     if (cell.owner === p.id) {
@@ -320,6 +331,7 @@ export class GameHub {
     room.phase = "answering";
     room.claimQueue = [];
     room.claimIndex = -1;
+    room.currentClaimPlayerId = null;
     room.question = makeQuestion(room.difficulty);
     room.deadline = Date.now() + 60000;
 
@@ -328,6 +340,7 @@ export class GameHub {
       p.claimRemaining = 0;
       p.lockNextClaim = false;
       p.roundAnswerMs = 0;
+      p.roundSubmittedAt = 0;
       p.roundCorrect = null;
       p.answerStartedAt = Date.now();
       p.botDue = p.isBot ? Date.now() + rand(900, 3500) : 0;
@@ -444,6 +457,7 @@ export class GameHub {
       state:room.state,
       round:room.round,
       phase:room.phase,
+      currentClaimPlayerId:room.currentClaimPlayerId,
       deadline:room.deadline,
       question:room.question ? {text:room.question.text} : null,
       board:room.board,
@@ -492,8 +506,9 @@ export class GameHub {
       if (room.phase === "answering") {
         const dueBots = room.players.filter(p => p.isBot && p.status === "answering" && p.botDue && p.botDue <= now);
         for (const p of dueBots) {
+          const botSubmittedAt = p.botDue;
           p.botDue = 0;
-          this.resolveAnswer(room, p, Math.random() < 0.9, false);
+          this.resolveAnswer(room, p, Math.random() < 0.9, false, botSubmittedAt);
         }
 
         if (room.phase === "answering" && room.deadline && room.deadline <= now) {
@@ -502,6 +517,7 @@ export class GameHub {
             p.totalAnswers += 1;
             p.totalAnswerMs += 60000;
             p.roundAnswerMs = 60000;
+            p.roundSubmittedAt = room.deadline;
             p.roundCorrect = false;
             p.status = "done";
             p.claimRemaining = 0;
@@ -567,7 +583,7 @@ export class GameHub {
       out[id] = {
         id:r.id,hostName:r.hostName,maxPlayers:3,difficulty:r.difficulty,training:!!r.training,
         state:"waiting",board:Array.from({length:9},()=>({owner:null,locked:false})),
-        round:0,question:null,deadline:0,phase:"answering",claimQueue:[],claimIndex:-1,
+        round:0,question:null,deadline:0,phase:"answering",claimQueue:[],claimIndex:-1,currentClaimPlayerId:null,
         players:[],createdAt:r.createdAt
       };
     }
