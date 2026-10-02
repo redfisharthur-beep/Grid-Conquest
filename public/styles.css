@@ -189,3 +189,18 @@
   line-height:1.2;
 }
 .line-logout-btn:hover{color:#5f5a52}
+
+/* Home spacing refinement */
+.hero-overlay{
+  top:34.5%;
+}
+.line-login-btn img{
+  width:min(85px,26vw);
+}
+@media(max-width:760px){
+  .hero-overlay{top:34%}
+}
+@media(max-width:430px){
+  .hero-overlay{top:34.5%}
+  .line-login-btn img{width:min(82px,25vw)}
+}
