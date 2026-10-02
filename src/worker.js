@@ -987,38 +987,91 @@ function json(value,status=200) {
 }
 function cleanName(v) { return String(v || "").trim().slice(0,12); }
 function rand(min,max) { return Math.floor(Math.random()*(max-min+1))+min; }
-
-function makeQuestion(level) {
-  if (level === "basic") {
-    for (let n=0;n<500;n++) {
-      const a=rand(1,20),b=rand(1,20),c=rand(1,20);
-      const op1=Math.random()<.5?"+":"-",op2=Math.random()<.5?"+":"-";
-      const answer=evalThree(a,op1,b,op2,c);
-      if (answer===null || !Number.isInteger(answer) || answer<0) continue;
-      return {text:a+" "+op1+" "+b+" "+op2+" "+c+"",answer};
-    }
-    return {text:"12 - 5 + 8",answer:15};
-  }
-  if (level === "advanced") {
-    for (let n=0;n<1000;n++) {
-      const a=rand(1,20),b=rand(1,20),c=rand(1,20);
-      const op1=["+","-","×","÷"][rand(0,3)],op2=["+","-","×","÷"][rand(0,3)];
-      const value=evalThree(a,op1,b,op2,c);
-      if (value===null || !Number.isInteger(value) || value<0) continue;
-      return {text:a+" "+op1+" "+b+" "+op2+" "+c+"",answer:value};
-    }
-    return {text:"18 ÷ 3 + 7",answer:13};
-  }
-  for (let n=0;n<1200;n++) {
-    const a=rand(-20,20),b=rand(-20,20),c=rand(-20,20);
-    const op1=["+","-","×","÷"][rand(0,3)],op2=["+","-","×","÷"][rand(0,3)];
-    const value=evalThree(a,op1,b,op2,c);
-    if (value===null || !Number.isInteger(value)) continue;
-    return {text:showNumber(a)+" "+op1+" "+showNumber(b)+" "+op2+" "+showNumber(c)+"",answer:value};
-  }
-  return {text:"(-8) + 12 - 5",answer:-1};
+function randNonZero(min,max) {
+  let n=0;
+  while (n===0) n=rand(min,max);
+  return n;
 }
 
+function makeQuestion(level) {
+  // All questions use exactly 3 numbers and 2 operators.
+  if (level === "basic") {
+    // 99以内加減法、無括號、答案必須為正整數。
+    for (let n=0;n<1200;n++) {
+      const a=rand(1,99), b=rand(1,99), c=rand(1,99);
+      const op1=Math.random()<.5?"+":"-";
+      const op2=Math.random()<.5?"+":"-";
+      const answer=evalThree(a,op1,b,op2,c);
+      if (!Number.isInteger(answer) || answer <= 0) continue;
+      return {text:a+" "+op1+" "+b+" "+op2+" "+c,answer};
+    }
+    return {text:"85 - 15 - 55",answer:15};
+  }
+
+  if (level === "advanced") {
+    // 10以内四則運算、答案必須為正整數。
+    // 題型混合一般運算順序與括號題，符合 9+8×3、(6+4)×5 兩種形式。
+    for (let n=0;n<2400;n++) {
+      const a=rand(1,10), b=rand(1,10), c=rand(1,10);
+      const op1=["+","-","×","÷"][rand(0,3)];
+      const op2=["+","-","×","÷"][rand(0,3)];
+      const grouped=Math.random()<0.55;
+
+      let answer, text;
+      if (grouped) {
+        if (Math.random()<0.5) {
+          const left=applyOp(a,op1,b);
+          if (left===null) continue;
+          answer=applyOp(left,op2,c);
+          text="("+a+" "+op1+" "+b+") "+op2+" "+c;
+        } else {
+          const right=applyOp(b,op2,c);
+          if (right===null) continue;
+          answer=applyOp(a,op1,right);
+          text=a+" "+op1+" ("+b+" "+op2+" "+c+")";
+        }
+      } else {
+        answer=evalThree(a,op1,b,op2,c);
+        text=a+" "+op1+" "+b+" "+op2+" "+c;
+      }
+
+      if (answer===null || !Number.isInteger(answer) || answer <= 0) continue;
+      return {text,answer};
+    }
+    return {text:"(6 + 4) × 5",answer:50};
+  }
+
+  // 挑戰：10以内四則運算，可使用負數，答案可為負整數。
+  // 負數一律以括號呈現；同時混合一般運算順序與括號分組。
+  for (let n=0;n<3000;n++) {
+    const a=randNonZero(-10,10), b=randNonZero(-10,10), c=randNonZero(-10,10);
+    const op1=["+","-","×","÷"][rand(0,3)];
+    const op2=["+","-","×","÷"][rand(0,3)];
+    const grouped=Math.random()<0.6;
+
+    let answer, text;
+    if (grouped) {
+      if (Math.random()<0.5) {
+        const left=applyOp(a,op1,b);
+        if (left===null) continue;
+        answer=applyOp(left,op2,c);
+        text="("+showNumber(a)+" "+op1+" "+showNumber(b)+") "+op2+" "+showNumber(c);
+      } else {
+        const right=applyOp(b,op2,c);
+        if (right===null) continue;
+        answer=applyOp(a,op1,right);
+        text=showNumber(a)+" "+op1+" ("+showNumber(b)+" "+op2+" "+showNumber(c)+")";
+      }
+    } else {
+      answer=evalThree(a,op1,b,op2,c);
+      text=showNumber(a)+" "+op1+" "+showNumber(b)+" "+op2+" "+showNumber(c);
+    }
+
+    if (answer===null || !Number.isInteger(answer)) continue;
+    return {text,answer};
+  }
+  return {text:"(-9) + 8 × 3",answer:15};
+}
 function evalThree(a,op1,b,op2,c) {
   const prec=op => (op==="×"||op==="÷")?2:1;
   if (prec(op1)>=prec(op2)) {
