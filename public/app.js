@@ -66,7 +66,7 @@ async function createRoom(training=false) {
         hostName:state.name,
         job:state.job,
         maxPlayers:3,
-        difficulty:$("#difficulty").value,
+        difficulty:document.querySelector('input[name="difficulty"]:checked')?.value || "basic",
         training
       })
     });
