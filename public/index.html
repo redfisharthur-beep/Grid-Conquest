@@ -54,19 +54,25 @@
 
         <div class="lobby-actions">
           <div class="create-box card-panel">
-            <div class="row"><label class="field compact">
-                <select id="difficulty">
-                  <option value="basic">基本</option>
-                  <option value="advanced">進階</option>
-                  <option value="challenge">挑戰</option>
-                </select>
+            <button id="createRoomBtn" class="primary wide create-room-main" type="button">建立房間</button>
+            <div class="difficulty-options" role="radiogroup" aria-label="選擇難度">
+              <label class="difficulty-option">
+                <input type="radio" name="difficulty" value="basic" checked>
+                <span>基本</span>
+              </label>
+              <label class="difficulty-option">
+                <input type="radio" name="difficulty" value="advanced">
+                <span>進階</span>
+              </label>
+              <label class="difficulty-option">
+                <input type="radio" name="difficulty" value="challenge">
+                <span>挑戰</span>
               </label>
             </div>
-            <button id="createRoomBtn" class="primary wide" type="button">建立房間</button>
-            <button id="trainingRoomBtn" class="training-btn wide" type="button">訓練房間</button>
           </div>
 
           <div class="rooms-box card-panel">
+            <button id="trainingRoomBtn" class="training-btn training-room-list-btn" type="button">訓練房間</button>
             <div id="roomList" class="room-list"></div>
           </div>
         </div>
