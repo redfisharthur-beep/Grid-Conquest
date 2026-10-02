@@ -396,8 +396,8 @@ function syncAnswerUI() {
   } else if (me.status === "claiming") {
     input.disabled = true;
     $("#answerState").textContent = state.room.currentClaimPlayerId === state.playerId
-      ? (me.claimRemaining === 2 ? "輪到你　請選2格" : "輪到你　請選一格")
-      : "等待上一位玩家完成選擇";
+      ? "請選擇"
+      : "等待中";
   } else {
     input.disabled = true;
   }
