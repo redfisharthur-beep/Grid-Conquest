@@ -290,7 +290,7 @@ function showLastRoundAlert() {
   showSkillEffect.t = setTimeout(() => {
     overlay.classList.add("hidden");
     img.src = "";
-  }, 2000);
+  }, 3000);
 }
 
 function pageIs(id) {
