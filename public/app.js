@@ -341,9 +341,6 @@ function renderPlayers() {
     bar.appendChild(el);
   });
 }
-function statusText(s) {
-  return ({waiting:"等待",answering:"答題",claiming:"佔領",done:"完成"})[s] || s;
-}
 
 function renderBoard() {
   const board = $("#board");
