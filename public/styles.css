@@ -292,3 +292,91 @@
   align-items:center;
   justify-content:center;
 }
+
+/* Lobby career record panel */
+.lobby-page .shell{
+  width:min(1180px,100%);
+}
+.lobby-profile-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 230px;
+  gap:16px;
+  align-items:stretch;
+}
+.lobby-profile-row .class-grid{
+  min-width:0;
+}
+.career-panel{
+  border:1px solid #C9C0B3;
+  background:rgba(250,247,241,.9);
+  border-radius:22px;
+  padding:18px 16px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  min-height:305px;
+  box-shadow:0 8px 24px rgba(82,64,42,.06);
+}
+.career-title{
+  font-size:13px;
+  color:#7b746a;
+  margin-bottom:4px;
+  text-align:center;
+}
+.career-panel>strong{
+  display:block;
+  text-align:center;
+  font-size:24px;
+  font-weight:500;
+  margin-bottom:20px;
+  color:#4f514b;
+}
+.career-records{
+  display:grid;
+  gap:10px;
+}
+.career-records>div{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding-bottom:8px;
+  border-bottom:1px solid rgba(90,84,76,.12);
+  font-size:15px;
+}
+.career-records>div:last-child{
+  border-bottom:0;
+  padding-bottom:0;
+}
+.career-records b{
+  font-weight:500;
+}
+@media(max-width:900px){
+  .lobby-profile-row{
+    grid-template-columns:1fr;
+  }
+  .career-panel{
+    min-height:auto;
+  }
+  .career-records{
+    grid-template-columns:repeat(4,1fr);
+  }
+  .career-records>div{
+    flex-direction:column;
+    justify-content:center;
+    gap:2px;
+    border-bottom:0;
+    padding:0;
+    text-align:center;
+  }
+}
+@media(max-width:520px){
+  .career-records{
+    grid-template-columns:repeat(2,1fr);
+    gap:12px 8px;
+  }
+  .career-panel>strong{
+    font-size:21px;
+    margin-bottom:14px;
+  }
+}
