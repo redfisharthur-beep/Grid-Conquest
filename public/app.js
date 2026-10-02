@@ -62,10 +62,13 @@ const state = {
   timerId: null
 };
 
-$("#playerName").value = state.name;
+const playerNameInput = $("#playerName");
+if (playerNameInput) playerNameInput.value = state.name;
 
 function page(id) {
-  $(".page").forEach(x => x.classList.toggle("active", x.id === id));
+  document.querySelectorAll(".page").forEach(el => {
+    el.classList.toggle("active", el.id === id);
+  });
   requestAnimationFrame(() => playBgm());
 }
 function toast(msg) {
@@ -85,8 +88,8 @@ function requireIdentity() {
   return true;
 }
 
-$("#fightBtn").addEventListener("click", () => {
-  const name = $("#playerName").value.trim();
+$("#fightBtn")?.addEventListener("click", () => {
+  const name = ($("#playerName")?.value || "").trim();
   if (!name) return toast("請輸入名字");
   state.name = name.slice(0,12);
   saveIdentity();
@@ -124,8 +127,8 @@ async function createRoom(training=false) {
     joinRoom(data.id);
   } catch (e) { toast(e.message); }
 }
-$("#createRoomBtn").addEventListener("click", () => createRoom(false));
-$("#trainingRoomBtn").addEventListener("click", () => createRoom(true));
+$("#createRoomBtn")?.addEventListener("click", () => createRoom(false));
+$("#trainingRoomBtn")?.addEventListener("click", () => createRoom(true));
 
 async function refreshRooms() {
   try {
@@ -228,13 +231,16 @@ function showSkillEffect(job) {
   }, 2000);
 }
 
-function pageIs(id) { return $("#"+id).classList.contains("active"); }
+function pageIs(id) {
+  const el = document.getElementById(id);
+  return !!el && el.classList.contains("active");
+}
 
-$("#startBtn").addEventListener("click", () => {
+$("#startBtn")?.addEventListener("click", () => {
   state.ws?.send(JSON.stringify({type:"start"}));
 });
 
-$("#answerForm").addEventListener("submit", e => {
+$("#answerForm")?.addEventListener("submit", e => {
   e.preventDefault();
   if (!state.room || state.room.state !== "playing") return;
   const raw = $("#answerInput").value.trim();
@@ -242,7 +248,7 @@ $("#answerForm").addEventListener("submit", e => {
   state.ws?.send(JSON.stringify({type:"answer", answer:Number(raw)}));
 });
 
-$("#backLobbyBtn").addEventListener("click", () => {
+$("#backLobbyBtn")?.addEventListener("click", () => {
   try { state.ws?.close(); } catch {}
   state.ws = null;
   state.room = null;
