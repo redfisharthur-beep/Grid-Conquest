@@ -251,7 +251,7 @@ function renderPlayers() {
     const el = document.createElement("div");
     el.className = "player-chip p"+p.colorIndex+(p.id===state.playerId?" me":"");
     const img = JOB_IMG[p.job] || "";
-    el.innerHTML = '<img class="player-job-icon" src="'+img+'" alt="'+escapeHtml(JOB_NAME[p.job] || "")+'"><b>'+escapeHtml(p.name)+'</b>';
+    el.innerHTML = '<div class="player-main"><img class="player-job-icon" src="'+img+'" alt="'+escapeHtml(JOB_NAME[p.job] || "")+'"><b>'+escapeHtml(p.name)+'</b></div><div class="player-record-space" aria-hidden="true"></div>';
     bar.appendChild(el);
   });
 }
