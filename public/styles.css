@@ -225,3 +225,42 @@
   .fight-btn{margin-top:-12px}
   .fight-btn img{width:min(145px,44vw)}
 }
+
+/* LINE profile: avatar + logout only */
+.line-profile{
+  display:inline-flex;
+  width:auto;
+  max-width:none;
+  padding:0;
+  margin:0;
+  background:transparent;
+  border:0;
+}
+.line-profile strong{display:none!important}
+.line-profile img{
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  object-fit:cover;
+}
+#lineProfile:not(.hidden) + .line-logout-btn{
+  display:inline-flex;
+  align-items:center;
+  margin:0 0 0 6px;
+  padding:4px 6px;
+  font-size:12px;
+}
+.hero-overlay:has(#lineProfile:not(.hidden)){
+  display:grid;
+  grid-template-columns:auto auto;
+  justify-content:center;
+  align-items:center;
+  column-gap:6px;
+  row-gap:10px;
+}
+.hero-overlay:has(#lineProfile:not(.hidden)) .name-field,
+.hero-overlay:has(#lineProfile:not(.hidden)) .line-login-btn,
+.hero-overlay:has(#lineProfile:not(.hidden)) .fight-btn{
+  grid-column:1 / -1;
+  justify-self:center;
+}
