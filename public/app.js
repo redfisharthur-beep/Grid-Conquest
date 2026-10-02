@@ -88,7 +88,7 @@ async function loadLineProfile() {
     if (box) {
       const p = data.profile;
       const avatar = p.pictureUrl ? '<img src="'+p.pictureUrl+'" alt="LINE頭像">' : '';
-      box.innerHTML = avatar + '<strong>'+escapeHtml(p.displayName)+'</strong>';
+      box.innerHTML = avatar;
       box.classList.remove("hidden");
     }
     const logoutBtn = $("#lineLogoutBtn");
