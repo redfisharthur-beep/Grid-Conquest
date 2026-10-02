@@ -448,3 +448,15 @@
     justify-self:center;
   }
 }
+
+/* Larger answer text */
+#answerInput{
+  font-size:32px;
+  line-height:1.2;
+}
+@media(max-width:760px){
+  #answerInput{font-size:28px}
+}
+@media(max-width:430px){
+  #answerInput{font-size:26px}
+}
