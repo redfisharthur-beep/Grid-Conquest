@@ -139,7 +139,7 @@ export class GameHub {
     return {
       id:crypto.randomUUID(), name, job, isBot, host, ws,
       status:"waiting", correctCount:0, claimRemaining:0,
-      lockNextClaim:false, mageUsed:false, botDue:0,
+      lockNextClaim:false, botDue:0,
       totalAnswers:0, correctAnswers:0, totalAnswerMs:0, answerStartedAt:0,
       archerBonusPending:false, mageLineTriggers:0
     };
@@ -154,7 +154,6 @@ export class GameHub {
       p.correctCount = 0;
       p.claimRemaining = 0;
       p.lockNextClaim = false;
-      p.mageUsed = false;
       p.botDue = 0;
       p.totalAnswers = 0;
       p.correctAnswers = 0;
@@ -403,23 +402,12 @@ export class GameHub {
     this.scheduleAlarm();
   }
 
-  playBotClaims(room, p) {
-    while (p.status === "claiming" && p.claimRemaining > 0) {
-      const pick = this.chooseBotClaim(room, p);
-      if (pick < 0 || !this.claim(room, p, pick, false)) {
-        p.status = "done";
-        p.claimRemaining = 0;
-        break;
-      }
-    }
-  }
-
   chooseBotClaim(room, p) {
     const choices = [];
     for (let i=0;i<9;i++) {
       const c = room.board[i];
       if (c.owner === p.id) continue;
-      if (c.locked && c.owner !== p.id) continue;
+      if (c.locked && c.owner !== p.id && !(p.job === "priest" && i === 4)) continue;
       let score = Math.random();
       if (i === 4) score += p.job === "priest" ? 12 : 6;
       if (c.owner && c.owner !== p.id) score += 4;
