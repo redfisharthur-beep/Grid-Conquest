@@ -1,9 +1,37 @@
+const LINE_CHANNEL_ID = "2011834853";
+const LINE_CALLBACK_PATH = "/api/auth/line/callback";
+const SESSION_COOKIE = "gc_session";
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    if (url.pathname === "/api/auth/line/login") {
+      return beginLineLogin(request, env);
+    }
+
+    if (url.pathname === LINE_CALLBACK_PATH) {
+      return finishLineLogin(request, env);
+    }
+
+    if (url.pathname === "/api/auth/logout" && request.method === "POST") {
+      const session = readCookie(request, SESSION_COOKIE);
+      if (session) {
+        const stub = getHub(env);
+        await stub.fetch(new Request("https://hub/auth/logout", {
+          method:"POST",
+          headers:{"content-type":"application/json"},
+          body:JSON.stringify({session})
+        }));
+      }
+      return new Response(null, {
+        status:204,
+        headers:{"set-cookie":clearCookie(SESSION_COOKIE)}
+      });
+    }
+
     if (url.pathname.startsWith("/api/")) {
-      const id = env.GAME_HUB.idFromName("global");
-      const stub = env.GAME_HUB.get(id);
+      const stub = getHub(env);
       const next = new URL(request.url);
       next.hostname = "hub";
       next.pathname = url.pathname.replace(/^\/api/, "");
@@ -12,6 +40,119 @@ export default {
     return env.ASSETS.fetch(request);
   }
 };
+
+function getHub(env) {
+  const id = env.GAME_HUB.idFromName("global");
+  return env.GAME_HUB.get(id);
+}
+
+async function beginLineLogin(request, env) {
+  if (!env.LINE_CHANNEL_SECRET) {
+    return json({error:"LINE_CHANNEL_SECRET 尚未設定"}, 503);
+  }
+  const origin = new URL(request.url).origin;
+  const redirectUri = origin + LINE_CALLBACK_PATH;
+  const state = randomToken();
+  const nonce = randomToken();
+  const params = new URLSearchParams({
+    response_type:"code",
+    client_id:LINE_CHANNEL_ID,
+    redirect_uri:redirectUri,
+    state,
+    scope:"openid profile",
+    nonce
+  });
+  const headers = new Headers({
+    location:"https://access.line.me/oauth2/v2.1/authorize?" + params.toString()
+  });
+  headers.append("set-cookie", secureCookie("gc_line_state", state, 600));
+  headers.append("set-cookie", secureCookie("gc_line_nonce", nonce, 600));
+  return new Response(null, {status:302, headers});
+}
+
+async function finishLineLogin(request, env) {
+  if (!env.LINE_CHANNEL_SECRET) {
+    return json({error:"LINE_CHANNEL_SECRET 尚未設定"}, 503);
+  }
+
+  const url = new URL(request.url);
+  const code = url.searchParams.get("code");
+  const state = url.searchParams.get("state");
+  const savedState = readCookie(request, "gc_line_state");
+  const savedNonce = readCookie(request, "gc_line_nonce");
+  if (!code || !state || !savedState || state !== savedState) {
+    return new Response("LINE 登入驗證失敗：state 不一致", {status:400});
+  }
+
+  const redirectUri = url.origin + LINE_CALLBACK_PATH;
+  const tokenRes = await fetch("https://api.line.me/oauth2/v2.1/token", {
+    method:"POST",
+    headers:{"content-type":"application/x-www-form-urlencoded"},
+    body:new URLSearchParams({
+      grant_type:"authorization_code",
+      code,
+      redirect_uri:redirectUri,
+      client_id:LINE_CHANNEL_ID,
+      client_secret:env.LINE_CHANNEL_SECRET
+    })
+  });
+  const token = await tokenRes.json().catch(() => ({}));
+  if (!tokenRes.ok || !token.id_token) {
+    return new Response("LINE token 交換失敗", {status:502});
+  }
+
+  const verifyRes = await fetch("https://api.line.me/oauth2/v2.1/verify", {
+    method:"POST",
+    headers:{"content-type":"application/x-www-form-urlencoded"},
+    body:new URLSearchParams({
+      id_token:token.id_token,
+      client_id:LINE_CHANNEL_ID
+    })
+  });
+  const verified = await verifyRes.json().catch(() => ({}));
+  if (!verifyRes.ok || !verified.sub || (savedNonce && verified.nonce !== savedNonce)) {
+    return new Response("LINE 身分驗證失敗", {status:401});
+  }
+
+  const session = randomToken() + randomToken();
+  const stub = getHub(env);
+  await stub.fetch(new Request("https://hub/auth/session", {
+    method:"POST",
+    headers:{"content-type":"application/json"},
+    body:JSON.stringify({
+      session,
+      lineUserId:verified.sub,
+      displayName:cleanName(verified.name || "LINE玩家"),
+      pictureUrl:typeof verified.picture === "string" ? verified.picture : ""
+    })
+  }));
+
+  const headers = new Headers({location:"/?line=connected"});
+  headers.append("set-cookie", secureCookie(SESSION_COOKIE, session, 60*60*24*30));
+  headers.append("set-cookie", clearCookie("gc_line_state"));
+  headers.append("set-cookie", clearCookie("gc_line_nonce"));
+  return new Response(null, {status:302, headers});
+}
+
+function randomToken() {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => b.toString(16).padStart(2,"0")).join("");
+}
+function secureCookie(name, value, maxAge) {
+  return name+"="+encodeURIComponent(value)+"; Path=/; Max-Age="+maxAge+"; HttpOnly; Secure; SameSite=Lax";
+}
+function clearCookie(name) {
+  return name+"=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax";
+}
+function readCookie(request, name) {
+  const raw = request.headers.get("cookie") || "";
+  for (const part of raw.split(";")) {
+    const [k, ...rest] = part.trim().split("=");
+    if (k === name) return decodeURIComponent(rest.join("=") || "");
+  }
+  return "";
+}
 
 const LINES = [
   [0,1,2],[3,4,5],[6,7,8],
@@ -56,6 +197,50 @@ export class GameHub {
     const url = new URL(request.url);
     this.prune();
 
+    if (url.pathname === "/auth/session" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      if (!body.session || !body.lineUserId) return json({error:"invalid session"}, 400);
+      const profileKey = "profile:" + body.lineUserId;
+      const old = (await this.ctx.storage.get(profileKey)) || {};
+      const profile = {
+        lineUserId:body.lineUserId,
+        displayName:cleanName(body.displayName || old.displayName || "LINE玩家"),
+        pictureUrl:typeof body.pictureUrl === "string" ? body.pictureUrl : (old.pictureUrl || ""),
+        gamesPlayed:old.gamesPlayed || 0,
+        wins:old.wins || 0,
+        losses:old.losses || 0,
+        totalAnswers:old.totalAnswers || 0,
+        correctAnswers:old.correctAnswers || 0,
+        totalScore:old.totalScore || 0,
+        totalCellsGained:old.totalCellsGained || 0,
+        warriorGames:old.warriorGames || 0,
+        mageGames:old.mageGames || 0,
+        archerGames:old.archerGames || 0,
+        priestGames:old.priestGames || 0,
+        updatedAt:Date.now()
+      };
+      profile.title = careerTitle(profile);
+      await this.ctx.storage.put(profileKey, profile);
+      await this.ctx.storage.put("session:" + body.session, {
+        lineUserId:body.lineUserId,
+        expiresAt:Date.now() + 30*24*60*60*1000
+      });
+      return json({ok:true});
+    }
+
+    if (url.pathname === "/auth/logout" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      if (body.session) await this.ctx.storage.delete("session:" + body.session);
+      return json({ok:true});
+    }
+
+    if (url.pathname === "/auth/me" && request.method === "GET") {
+      const session = readCookie(request, SESSION_COOKIE);
+      const profile = await this.profileFromSession(session);
+      if (!profile) return json({loggedIn:false});
+      return json({loggedIn:true, profile:this.publicProfile(profile)});
+    }
+
     if (url.pathname === "/rooms" && request.method === "GET") return json(this.publicRooms());
 
     if (url.pathname === "/rooms" && request.method === "POST") {
@@ -94,11 +279,11 @@ export class GameHub {
     }
 
     const match = url.pathname.match(/^\/room\/([A-Z0-9]{5})\/ws$/);
-    if (match && request.headers.get("Upgrade") === "websocket") return this.connect(match[1], url);
+    if (match && request.headers.get("Upgrade") === "websocket") return this.connect(match[1], url, request);
     return new Response("Not found", {status:404});
   }
 
-  async connect(roomId, url) {
+  async connect(roomId, url, request) {
     const room = this.rooms.get(roomId);
     if (!room) return new Response("Room not found", {status:404});
     if (room.state !== "waiting") return new Response("Game started", {status:409});
@@ -112,7 +297,10 @@ export class GameHub {
     const [client, server] = Object.values(pair);
     server.accept();
 
-    const player = this.makePlayer(name, job, false, room.players.length === 0, server);
+    const session = readCookie(request, SESSION_COOKIE);
+    const profile = await this.profileFromSession(session);
+    const player = this.makePlayer(profile?.displayName || name, job, false, room.players.length === 0, server);
+    player.lineUserId = profile?.lineUserId || null;
     room.players.push(player);
 
     server.addEventListener("message", ev => {
@@ -135,6 +323,33 @@ export class GameHub {
 
     await this.persist();
     return new Response(null, {status:101, webSocket:client});
+  }
+
+  async profileFromSession(session) {
+    if (!session) return null;
+    const rec = await this.ctx.storage.get("session:" + session);
+    if (!rec || !rec.lineUserId || !rec.expiresAt || rec.expiresAt < Date.now()) {
+      if (rec) await this.ctx.storage.delete("session:" + session);
+      return null;
+    }
+    return (await this.ctx.storage.get("profile:" + rec.lineUserId)) || null;
+  }
+
+  publicProfile(profile) {
+    const games = profile.gamesPlayed || 0;
+    const answers = profile.totalAnswers || 0;
+    return {
+      displayName:profile.displayName || "LINE玩家",
+      pictureUrl:profile.pictureUrl || "",
+      gamesPlayed:games,
+      wins:profile.wins || 0,
+      losses:profile.losses || 0,
+      winRate:games ? Math.round((profile.wins || 0) / games * 100) : 0,
+      answerRate:answers ? Math.round((profile.correctAnswers || 0) / answers * 100) : 0,
+      totalScore:profile.totalScore || 0,
+      totalCellsGained:profile.totalCellsGained || 0,
+      title:careerTitle(profile)
+    };
   }
 
   makePlayer(name, job, isBot=false, host=false, ws=null) {
@@ -445,12 +660,44 @@ export class GameHub {
   }
 
   finish(room) {
+    if (room.state === "finished") return;
     room.state = "finished";
     room.deadline = 0;
     room.question = null;
     for (const p of room.players) p.botDue = 0;
-    this.broadcast(room, this.scores(room));
+    const scoreList = this.scores(room);
+    this.broadcast(room, scoreList);
     this.persist();
+    if (!room.training) this.ctx.waitUntil(this.recordCareer(room, scoreList));
+  }
+
+  async recordCareer(room, scoreList) {
+    const maxScore = Math.max(...scoreList.map(x => x.score), 0);
+    for (const p of room.players) {
+      if (p.isBot || !p.lineUserId) continue;
+      const key = "profile:" + p.lineUserId;
+      const profile = (await this.ctx.storage.get(key)) || {
+        lineUserId:p.lineUserId, displayName:p.name, pictureUrl:"",
+        gamesPlayed:0,wins:0,losses:0,totalAnswers:0,correctAnswers:0,
+        totalScore:0,totalCellsGained:0,warriorGames:0,mageGames:0,archerGames:0,priestGames:0
+      };
+      const score = scoreList.find(x => x.id === p.id);
+      if (!score) continue;
+      profile.displayName = p.name || profile.displayName;
+      profile.gamesPlayed = (profile.gamesPlayed || 0) + 1;
+      const won = score.score === maxScore;
+      profile.wins = (profile.wins || 0) + (won ? 1 : 0);
+      profile.losses = (profile.losses || 0) + (won ? 0 : 1);
+      profile.totalAnswers = (profile.totalAnswers || 0) + (score.totalAnswers || 0);
+      profile.correctAnswers = (profile.correctAnswers || 0) + (score.correctAnswers || 0);
+      profile.totalScore = (profile.totalScore || 0) + (score.score || 0);
+      profile.totalCellsGained = (profile.totalCellsGained || 0) + (score.gainedCellsTotal || 0);
+      const jobKey = p.job + "Games";
+      profile[jobKey] = (profile[jobKey] || 0) + 1;
+      profile.title = careerTitle(profile);
+      profile.updatedAt = Date.now();
+      await this.ctx.storage.put(key, profile);
+    }
   }
 
   resolveSandwichCaptures(room, playerId) {
@@ -680,6 +927,23 @@ export class GameHub {
     }
     await this.ctx.storage.put("rooms", out);
   }
+}
+
+function careerTitle(profile) {
+  const games = profile.gamesPlayed || 0;
+  const wins = profile.wins || 0;
+  const answers = profile.totalAnswers || 0;
+  const winRate = games ? wins / games : 0;
+  const answerRate = answers ? (profile.correctAnswers || 0) / answers : 0;
+
+  if (games >= 100 && winRate >= 0.60 && answerRate >= 0.85) return "傳奇霸主";
+  if (games >= 50 && winRate >= 0.55 && answerRate >= 0.80) return "征服大師";
+  if (games >= 30 && winRate >= 0.50 && answerRate >= 0.75) return "奧術菁英";
+  if (games >= 20 && winRate >= 0.45 && answerRate >= 0.70) return "格界獵手";
+  if (games >= 10 && winRate >= 0.40) return "戰術新星";
+  if (games >= 5) return "見習術士";
+  if (games >= 1) return "魔法學徒";
+  return "初入格界";
 }
 
 function json(value,status=200) {
