@@ -44,6 +44,7 @@ export class GameHub {
         raw.skillPauseUntil = 0;
         raw.skillResume = null;
         raw.botClaimDue = 0;
+        raw.roundTouched = Array(9).fill(false);
         this.rooms.set(id, raw);
       }
       this.prune();
@@ -85,6 +86,7 @@ export class GameHub {
         skillPauseUntil:0,
         skillResume:null,
         botClaimDue:0,
+        roundTouched:Array(9).fill(false),
         createdAt:Date.now()
       });
       await this.persist();
@@ -150,6 +152,7 @@ export class GameHub {
     room.skillPauseUntil = 0;
     room.skillResume = null;
     room.botClaimDue = 0;
+    room.roundTouched = Array(9).fill(false);
     for (const p of room.players) {
       p.correctCount = 0;
       p.claimRemaining = 0;
@@ -313,6 +316,10 @@ export class GameHub {
       return false;
     }
     if (!Number.isInteger(index) || index < 0 || index > 8) return false;
+    if (room.roundTouched?.[index]) {
+      if (notify) this.send(p, {type:"claimError", message:"此格本回合已被佔領，下一回合才能再爭奪"});
+      return false;
+    }
     const cell = room.board[index];
     if (cell.owner === p.id) {
       if (notify) this.send(p, {type:"claimError", message:"這格已經是你的"});
@@ -331,21 +338,22 @@ export class GameHub {
 
     cell.owner = p.id;
     cell.locked = !!p.lockNextClaim;
+    room.roundTouched[index] = true;
     p.claimRemaining -= 1;
 
     let skillJob = warriorSkill ? "warrior" : (priestSkill ? "priest" : null);
 
-    if (p.archerBonusPending) {
-      p.archerBonusPending = false;
-      if (this.randomBonusClaim(room, p.id)) skillJob = "archer";
-    }
-
-    const lineCaptured = this.resolveCaptures(room, p.id);
+    const lineCaptured = this.resolveSandwichCaptures(room, p.id);
     if (p.job === "mage" && lineCaptured) {
       p.mageLineTriggers = (p.mageLineTriggers || 0) + 1;
       if ((p.mageLineTriggers === 1 || p.mageLineTriggers === 3) && this.randomBonusClaim(room, p.id)) {
         skillJob = "mage";
       }
+    }
+
+    if (p.archerBonusPending) {
+      p.archerBonusPending = false;
+      if (this.randomBonusClaim(room, p.id)) skillJob = "archer";
     }
 
     if (this.checkFullBoardWinner(room)) {
@@ -384,6 +392,7 @@ export class GameHub {
     room.claimIndex = -1;
     room.currentClaimPlayerId = null;
     room.botClaimDue = 0;
+    room.roundTouched = Array(9).fill(false);
     room.question = makeQuestion(room.difficulty);
     room.deadline = Date.now() + 60000;
 
@@ -406,6 +415,7 @@ export class GameHub {
     const choices = [];
     for (let i=0;i<9;i++) {
       const c = room.board[i];
+      if (room.roundTouched?.[i]) continue;
       if (c.owner === p.id) continue;
       if (c.locked && c.owner !== p.id && !(p.job === "priest" && i === 4)) continue;
       let score = Math.random();
@@ -441,35 +451,30 @@ export class GameHub {
     this.persist();
   }
 
-  resolveCaptures(room, playerId) {
-    let anyLine = false;
-    let changed = true;
-    let guard = 0;
-    while (changed && guard++ < 8) {
-      changed = false;
-      for (const line of LINES) {
-        const mine = line.filter(i => room.board[i].owner === playerId);
-        const others = line.filter(i => room.board[i].owner && room.board[i].owner !== playerId && !room.board[i].locked);
-        if (mine.length >= 2 && others.length) {
-          for (const i of others) {
-            room.board[i] = {owner:playerId, locked:false};
-            changed = true;
-            anyLine = true;
-          }
-        }
-      }
+  resolveSandwichCaptures(room, playerId) {
+    let captured = false;
+    for (const [a,m,b] of LINES) {
+      if (room.board[a].owner !== playerId || room.board[b].owner !== playerId) continue;
+      const middle = room.board[m];
+      if (!middle.owner || middle.owner === playerId) continue;
+      if (middle.locked) continue;
+      if (room.roundTouched?.[m]) continue;
+
+      room.board[m] = {owner:playerId, locked:false};
+      room.roundTouched[m] = true;
+      captured = true;
     }
-    return anyLine;
+    return captured;
   }
 
   randomBonusClaim(room, playerId) {
     const targets = room.board
       .map((c,i) => ({c,i}))
-      .filter(x => x.c.owner !== playerId && !x.c.locked);
+      .filter(x => x.c.owner !== playerId && !x.c.locked && !room.roundTouched?.[x.i]);
     if (!targets.length) return false;
     const pick = targets[Math.floor(Math.random()*targets.length)].i;
     room.board[pick] = {owner:playerId, locked:false};
-    this.resolveCaptures(room, playerId);
+    room.roundTouched[pick] = true;
     this.checkFullBoardWinner(room);
     return true;
   }
@@ -516,6 +521,7 @@ export class GameHub {
       deadline:room.deadline,
       question:room.question ? {text:room.question.text} : null,
       board:room.board,
+      roundTouched:room.roundTouched || Array(9).fill(false),
       players:room.players.map((p,i) => ({
         id:p.id,name:p.name,job:p.job,host:p.host,isBot:!!p.isBot,status:p.status,
         correctCount:p.correctCount,claimRemaining:p.claimRemaining,colorIndex:i,
@@ -661,7 +667,7 @@ export class GameHub {
         id:r.id,hostName:r.hostName,maxPlayers:3,difficulty:r.difficulty,training:!!r.training,
         state:"waiting",board:Array.from({length:9},()=>({owner:null,locked:false})),
         round:0,question:null,deadline:0,phase:"answering",claimQueue:[],claimIndex:-1,currentClaimPlayerId:null,
-        skillPauseUntil:0,skillResume:null,botClaimDue:0,players:[],createdAt:r.createdAt
+        skillPauseUntil:0,skillResume:null,botClaimDue:0,roundTouched:Array(9).fill(false),players:[],createdAt:r.createdAt
       };
     }
     await this.ctx.storage.put("rooms", out);
