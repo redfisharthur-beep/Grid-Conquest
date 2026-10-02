@@ -371,3 +371,14 @@
 #answerInput{
   text-align:center;
 }
+
+/* Game page back button */
+.game-back-row{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  margin:0 0 10px;
+}
+.game-back-row .back-btn{
+  margin:0 auto;
+}
