@@ -1,6 +1,7 @@
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const JOB_NAME = {warrior:"戰士",mage:"法師",archer:"弓手",priest:"牧師"};
+const JOB_IMG = {warrior:"/assets/warrior.png",mage:"/assets/mage.png",archer:"/assets/archer.png",priest:"/assets/priest.png"};
 const DIFF_NAME = {basic:"基本",advanced:"進階",challenge:"挑戰"};
 
 const state = {
@@ -182,7 +183,7 @@ $("#backLobbyBtn").addEventListener("click", () => {
 function renderRoom(scores) {
   const r = state.room;
   if (!r) return;
-  $("#difficultyText").textContent = DIFF_NAME[r.difficulty] || "";
+  $("#difficultyText").textContent = "";
   renderPlayers();
   renderBoard();
 
@@ -190,9 +191,10 @@ function renderRoom(scores) {
     $("#waitingPanel").classList.remove("hidden");
     $("#battlePanel").classList.add("hidden");
     $("#resultPanel").classList.add("hidden");
-    $("#roundText").textContent = "等待";
+    $("#roundText").textContent = "";
+    $("#roomTitle").textContent = "";
+    $("#waitingText").textContent = "";
     $("#timer").textContent = "60";
-    $("#waitingText").textContent = r.players.length+"/3 人";
     const me = r.players.find(p => p.id === state.playerId);
     $("#startBtn").classList.toggle("hidden", !(me?.host && r.players.length >= 2));
     return;
@@ -203,6 +205,7 @@ function renderRoom(scores) {
     $("#battlePanel").classList.remove("hidden");
     $("#resultPanel").classList.add("hidden");
     $("#roundText").textContent = "第 "+r.round+"/5 回合";
+    $("#difficultyText").textContent = DIFF_NAME[r.difficulty] || "";
     $("#questionText").textContent = r.question?.text || "--";
     syncAnswerUI();
     startTimer(r.deadline);
@@ -247,7 +250,8 @@ function renderPlayers() {
   (state.room?.players || []).forEach(p => {
     const el = document.createElement("div");
     el.className = "player-chip p"+p.colorIndex+(p.id===state.playerId?" me":"");
-    el.innerHTML = "<b>"+escapeHtml(p.name)+"</b><small>"+JOB_NAME[p.job]+" · "+statusText(p.status)+"</small>";
+    const img = JOB_IMG[p.job] || "";
+    el.innerHTML = '<img class="player-job-icon" src="'+img+'" alt="'+escapeHtml(JOB_NAME[p.job] || "")+'"><b>'+escapeHtml(p.name)+'</b>';
     bar.appendChild(el);
   });
 }
