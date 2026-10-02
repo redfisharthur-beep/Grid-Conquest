@@ -81,7 +81,7 @@
 #resultList{display:flex;flex-direction:column;gap:12px}
 .result-card{display:grid;grid-template-columns:minmax(250px,42%) 1fr;gap:18px;align-items:center;border-radius:18px;padding:16px 18px;border:1px solid rgba(90,84,76,.18)}
 .result-visual{display:flex;flex-direction:column;align-items:center}
-.result-art-line{display:flex;align-items:center;justify-content:center;gap:10px;width:100%}
+.result-art-line{display:flex;align-items:center;justify-content:center;gap:14px;width:100%}
 .result-job-icon{width:150px;height:150px;object-fit:contain}
 .result-winner-icon{width:120px;height:auto;object-fit:contain}
 .result-name{font-size:20px;margin-top:4px;text-align:center}
