@@ -526,3 +526,10 @@
 .game-page.final-board-mode .cell .owner{
   font-size:clamp(18px,3.5vmin,34px);
 }
+
+/* Center the empty-room message */
+#roomList .room-item:only-child > span{
+  width:100%;
+  text-align:center;
+  display:block;
+}
