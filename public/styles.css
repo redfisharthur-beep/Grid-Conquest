@@ -102,3 +102,14 @@
   .result-name{font-size:16px}
   .result-stats>div{font-size:14px;gap:8px}
 }
+
+/* Center room-list labels */
+.room-item{position:relative;justify-content:center}
+.room-item>span{width:100%;text-align:center}
+.room-meta{flex:1;align-items:center;text-align:center}
+.room-item>.primary{position:absolute;right:14px;top:50%;transform:translateY(-50%)}
+.room-item>.primary:hover{transform:translateY(calc(-50% - 1px))}
+
+/* In-game profession ability */
+.job-ability{white-space:pre-line;text-align:center;font-size:17px;line-height:1.55;margin:-4px 0 14px;color:#5f5a52}
+@media(max-width:430px){.job-ability{font-size:15px;margin-bottom:12px}}
