@@ -41,6 +41,8 @@ export class GameHub {
         raw.claimQueue = [];
         raw.claimIndex = -1;
         raw.currentClaimPlayerId = null;
+        raw.skillPauseUntil = 0;
+        raw.skillResume = null;
         this.rooms.set(id, raw);
       }
       this.prune();
@@ -79,6 +81,8 @@ export class GameHub {
         claimQueue:[],
         claimIndex:-1,
         currentClaimPlayerId:null,
+        skillPauseUntil:0,
+        skillResume:null,
         createdAt:Date.now()
       });
       await this.persist();
@@ -141,6 +145,8 @@ export class GameHub {
 
   resetMatch(room) {
     room.board = Array.from({length:9}, () => ({owner:null, locked:false}));
+    room.skillPauseUntil = 0;
+    room.skillResume = null;
     for (const p of room.players) {
       p.correctCount = 0;
       p.claimRemaining = 0;
@@ -275,6 +281,22 @@ export class GameHub {
     this.advanceRound(room);
   }
 
+  broadcastSkill(room, job, playerId) {
+    const payload = {type:"skillEffect", job, playerId};
+    for (const p of room.players) this.send(p, payload);
+  }
+
+  pauseForSkill(room, job, playerId, resume="advanceClaimTurn") {
+    this.broadcastSkill(room, job, playerId);
+    room.phase = "skill";
+    room.currentClaimPlayerId = null;
+    room.skillPauseUntil = Date.now() + 2000;
+    room.deadline = room.skillPauseUntil;
+    room.skillResume = resume;
+    this.broadcast(room);
+    this.scheduleAlarm();
+  }
+
   advanceRound(room) {
     if (room.round >= 7) this.finish(room);
     else this.startRound(room);
@@ -300,30 +322,39 @@ export class GameHub {
       }
     }
 
+    const warriorSkill = p.job === "warrior" && !!p.lockNextClaim;
+    const priestSkill = p.job === "priest" && index === 4;
+
     cell.owner = p.id;
     cell.locked = !!p.lockNextClaim;
     p.claimRemaining -= 1;
 
+    let skillJob = warriorSkill ? "warrior" : (priestSkill ? "priest" : null);
+
     if (p.archerBonusPending) {
       p.archerBonusPending = false;
-      this.randomBonusClaim(room, p.id);
+      if (this.randomBonusClaim(room, p.id)) skillJob = "archer";
     }
 
     const lineCaptured = this.resolveCaptures(room, p.id);
     if (p.job === "mage" && lineCaptured) {
       p.mageLineTriggers = (p.mageLineTriggers || 0) + 1;
-      if (p.mageLineTriggers === 1 || p.mageLineTriggers === 3) {
-        this.randomBonusClaim(room, p.id);
+      if ((p.mageLineTriggers === 1 || p.mageLineTriggers === 3) && this.randomBonusClaim(room, p.id)) {
+        skillJob = "mage";
       }
     }
 
-    if (this.checkFullBoardWinner(room)) return true;
+    if (this.checkFullBoardWinner(room)) {
+      if (skillJob) this.broadcastSkill(room, skillJob, p.id);
+      return true;
+    }
 
     if (p.claimRemaining <= 0) {
       p.status = "done";
       p.lockNextClaim = false;
       this.broadcast(room);
-      this.advanceClaimTurn(room);
+      if (skillJob) this.pauseForSkill(room, skillJob, p.id, "advanceClaimTurn");
+      else this.advanceClaimTurn(room);
       return true;
     }
 
@@ -487,6 +518,7 @@ export class GameHub {
       round:room.round,
       phase:room.phase,
       currentClaimPlayerId:room.currentClaimPlayerId,
+      skillPauseUntil:room.skillPauseUntil||0,
       deadline:room.deadline,
       question:room.question ? {text:room.question.text} : null,
       board:room.board,
@@ -557,6 +589,16 @@ export class GameHub {
           this.broadcast(room);
           this.beginClaimPhase(room);
         }
+      } else if (room.phase === "skill") {
+        if (room.skillPauseUntil && room.skillPauseUntil <= now) {
+          const resume = room.skillResume;
+          room.skillPauseUntil = 0;
+          room.skillResume = null;
+          room.deadline = 0;
+          room.phase = "claiming";
+          if (resume === "advanceClaimTurn") this.advanceClaimTurn(room);
+          else if (resume === "advanceRound") this.advanceRound(room);
+        }
       } else if (room.phase === "claiming") {
         if (room.deadline && room.deadline <= now) {
           const current = room.players.find(p => p.status === "claiming");
@@ -614,7 +656,7 @@ export class GameHub {
         id:r.id,hostName:r.hostName,maxPlayers:3,difficulty:r.difficulty,training:!!r.training,
         state:"waiting",board:Array.from({length:9},()=>({owner:null,locked:false})),
         round:0,question:null,deadline:0,phase:"answering",claimQueue:[],claimIndex:-1,currentClaimPlayerId:null,
-        players:[],createdAt:r.createdAt
+        skillPauseUntil:0,skillResume:null,players:[],createdAt:r.createdAt
       };
     }
     await this.ctx.storage.put("rooms", out);
