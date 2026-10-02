@@ -449,7 +449,7 @@ function renderResults(scores) {
       '<div class="result-stats">' +
         '<div><span>總得分</span><strong>'+x.score+'</strong></div>' +
         '<div><span>答對率</span><strong>'+accuracy+'%</strong></div>' +
-        '<div><span>全部曾經取得的格子數</span><strong>'+(x.gainedCellsTotal ?? x.occupiedCells ?? 0)+'</strong></div>' +
+        '<div><span>格子數</span><strong>'+(x.gainedCellsTotal ?? x.occupiedCells ?? 0)+'</strong></div>' +
         '<div><span>總答題時間</span><strong>'+seconds+' 秒</strong></div>' +
       '</div>';
     box.appendChild(row);
