@@ -996,16 +996,16 @@ function randNonZero(min,max) {
 function makeQuestion(level) {
   // All questions use exactly 3 numbers and 2 operators.
   if (level === "basic") {
-    // 99以内加減法、無括號、答案必須為正整數。
-    for (let n=0;n<1200;n++) {
-      const a=rand(1,99), b=rand(1,99), c=rand(1,99);
-      const op1=Math.random()<.5?"+":"-";
-      const op2=Math.random()<.5?"+":"-";
+    // 1～10、加減乘、無括號、答案必須為正整數。
+    for (let n=0;n<1600;n++) {
+      const a=rand(1,10), b=rand(1,10), c=rand(1,10);
+      const op1=["+","-","×"][rand(0,2)];
+      const op2=["+","-","×"][rand(0,2)];
       const answer=evalThree(a,op1,b,op2,c);
       if (!Number.isInteger(answer) || answer <= 0) continue;
       return {text:a+" "+op1+" "+b+" "+op2+" "+c,answer};
     }
-    return {text:"85 - 15 - 55",answer:15};
+    return {text:"8 + 3 × 2",answer:14};
   }
 
   if (level === "advanced") {
