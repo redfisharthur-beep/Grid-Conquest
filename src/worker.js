@@ -522,8 +522,27 @@ export class GameHub {
   }
 
   advanceRound(room) {
-    if (room.round >= 7) this.finish(room);
+    if (room.round >= 7) this.startFinalHold(room);
     else this.startRound(room);
+  }
+
+  startFinalHold(room) {
+    if (room.state !== "playing") return;
+    room.phase = "finalHold";
+    room.question = null;
+    room.currentClaimPlayerId = null;
+    room.botClaimDue = 0;
+    room.skillPauseUntil = 0;
+    room.skillResume = null;
+    room.deadline = Date.now() + 5000;
+    for (const p of room.players) {
+      p.status = "done";
+      p.claimRemaining = 0;
+      p.lockNextClaim = false;
+      p.botDue = 0;
+    }
+    this.broadcast(room);
+    this.scheduleAlarm();
   }
 
   claim(room, p, index, notify=false) {
@@ -845,6 +864,10 @@ export class GameHub {
           }
           this.broadcast(room);
           this.beginClaimPhase(room);
+        }
+      } else if (room.phase === "finalHold") {
+        if (room.deadline && room.deadline <= now) {
+          this.finish(room);
         }
       } else if (room.phase === "skill") {
         if (room.skillPauseUntil && room.skillPauseUntil <= now) {
