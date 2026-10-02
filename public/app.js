@@ -3,6 +3,12 @@ const $$ = s => [...document.querySelectorAll(s)];
 const JOB_NAME = {warrior:"戰士",mage:"法師",archer:"弓手",priest:"牧師"};
 const JOB_IMG = {warrior:"/assets/warrior.png",mage:"/assets/mage.png",archer:"/assets/archer.png",priest:"/assets/priest.png"};
 const DIFF_NAME = {basic:"基本",advanced:"進階",challenge:"挑戰"};
+const JOB_ABILITY = {
+  warrior:"前2次答對\n佔領格鎖定",
+  mage:"連線吃子\n再隨機 +1 格（1次）",
+  archer:"第3次答對\n一次佔2格",
+  priest:"中央格 = 5分"
+};
 
 const state = {
   name: localStorage.getItem("gc_name") || "",
@@ -214,6 +220,8 @@ function renderRoom(scores) {
     $("#difficultyText").textContent = DIFF_NAME[r.difficulty] || "";
     $("#timer").classList.remove("hidden");
     $("#questionText").textContent = (r.question?.text || "--").replace(/\s*=\s*\?\s*$/, "");
+    const me = r.players.find(p => p.id === state.playerId);
+    $("#jobAbility").textContent = JOB_ABILITY[me?.job] || "";
     syncAnswerUI();
     startTimer(r.deadline);
     return;
@@ -227,6 +235,7 @@ function renderRoom(scores) {
     $("#playersBar").classList.add("hidden");
     $("#roundText").textContent = "";
     $("#difficultyText").textContent = "";
+    $("#jobAbility").textContent = "";
     $("#timer").classList.add("hidden");
     renderResults(scores || []);
   }
