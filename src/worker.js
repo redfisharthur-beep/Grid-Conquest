@@ -134,7 +134,8 @@ export class GameHub {
       id:crypto.randomUUID(), name, job, isBot, host, ws,
       status:"waiting", correctCount:0, claimRemaining:0,
       lockNextClaim:false, mageUsed:false, botDue:0,
-      totalAnswers:0, correctAnswers:0, totalAnswerMs:0, answerStartedAt:0
+      totalAnswers:0, correctAnswers:0, totalAnswerMs:0, answerStartedAt:0,
+      archerBonusPending:false, mageLineTriggers:0
     };
   }
 
@@ -150,6 +151,8 @@ export class GameHub {
       p.correctAnswers = 0;
       p.totalAnswerMs = 0;
       p.answerStartedAt = 0;
+      p.archerBonusPending = false;
+      p.mageLineTriggers = 0;
     }
   }
 
@@ -194,8 +197,9 @@ export class GameHub {
       p.correctCount += 1;
       p.status = "answered";
       p.roundCorrect = true;
-      p.claimRemaining = (p.job === "archer" && p.correctCount === 3) ? 2 : 1;
+      p.claimRemaining = 1;
       p.lockNextClaim = p.job === "warrior" && p.correctCount <= 2;
+      p.archerBonusPending = p.job === "archer" && (p.correctCount === 3 || p.correctCount === 5);
     } else {
       p.status = "done";
       p.roundCorrect = false;
@@ -272,7 +276,7 @@ export class GameHub {
   }
 
   advanceRound(room) {
-    if (room.round >= 10) this.finish(room);
+    if (room.round >= 7) this.finish(room);
     else this.startRound(room);
   }
 
@@ -289,19 +293,31 @@ export class GameHub {
       return false;
     }
     if (cell.locked && cell.owner !== p.id) {
-      if (notify) this.send(p, {type:"claimError", message:"這格已鎖定"});
-      return false;
+      const priestCanTakeLockedCenter = p.job === "priest" && index === 4;
+      if (!priestCanTakeLockedCenter) {
+        if (notify) this.send(p, {type:"claimError", message:"這格已鎖定"});
+        return false;
+      }
     }
 
     cell.owner = p.id;
     cell.locked = !!p.lockNextClaim;
     p.claimRemaining -= 1;
 
-    const lineCaptured = this.resolveCaptures(room, p.id);
-    if (p.job === "mage" && lineCaptured && !p.mageUsed) {
-      p.mageUsed = true;
-      this.mageBonus(room, p.id);
+    if (p.archerBonusPending) {
+      p.archerBonusPending = false;
+      this.randomBonusClaim(room, p.id);
     }
+
+    const lineCaptured = this.resolveCaptures(room, p.id);
+    if (p.job === "mage" && lineCaptured) {
+      p.mageLineTriggers = (p.mageLineTriggers || 0) + 1;
+      if (p.mageLineTriggers === 1 || p.mageLineTriggers === 3) {
+        this.randomBonusClaim(room, p.id);
+      }
+    }
+
+    if (this.checkFullBoardWinner(room)) return true;
 
     if (p.claimRemaining <= 0) {
       p.status = "done";
@@ -326,7 +342,7 @@ export class GameHub {
 
   startRound(room) {
     room.round += 1;
-    if (room.round > 10) return this.finish(room);
+    if (room.round > 7) return this.finish(room);
 
     room.phase = "answering";
     room.claimQueue = [];
@@ -421,14 +437,27 @@ export class GameHub {
     return anyLine;
   }
 
-  mageBonus(room, playerId) {
+  randomBonusClaim(room, playerId) {
     const targets = room.board
       .map((c,i) => ({c,i}))
       .filter(x => x.c.owner !== playerId && !x.c.locked);
-    if (!targets.length) return;
+    if (!targets.length) return false;
     const pick = targets[Math.floor(Math.random()*targets.length)].i;
     room.board[pick] = {owner:playerId, locked:false};
     this.resolveCaptures(room, playerId);
+    this.checkFullBoardWinner(room);
+    return true;
+  }
+
+  checkFullBoardWinner(room) {
+    if (room.state !== "playing") return false;
+    for (const p of room.players) {
+      if (room.board.every(c => c.owner === p.id)) {
+        this.finish(room);
+        return true;
+      }
+    }
+    return false;
   }
 
   scores(room) {
@@ -437,7 +466,7 @@ export class GameHub {
       room.board.forEach((c,i) => {
         if (c.owner !== p.id) return;
         if (i === 4 && p.job === "priest") score += 5;
-        else score += i === 4 ? 2 : 1;
+        else score += 1;
       });
       const occupiedCells = room.board.filter(c => c.owner === p.id).length;
       return {
@@ -463,7 +492,8 @@ export class GameHub {
       board:room.board,
       players:room.players.map((p,i) => ({
         id:p.id,name:p.name,job:p.job,host:p.host,isBot:!!p.isBot,status:p.status,
-        correctCount:p.correctCount,claimRemaining:p.claimRemaining,mageUsed:!!p.mageUsed,colorIndex:i,
+        correctCount:p.correctCount,claimRemaining:p.claimRemaining,colorIndex:i,
+        mageLineTriggers:p.mageLineTriggers||0,archerBonusPending:!!p.archerBonusPending,
         totalAnswers:p.totalAnswers,correctAnswers:p.correctAnswers,totalAnswerMs:p.totalAnswerMs
       }))
     };
