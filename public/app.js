@@ -67,30 +67,6 @@ const state = {
 const playerNameInput = $("#playerName");
 if (playerNameInput) playerNameInput.value = state.name;
 
-function renderCareerPanel(profile = state.lineProfile) {
-  const title = $("#careerTitleText");
-  const games = $("#careerGames");
-  const wins = $("#careerWins");
-  const winRate = $("#careerWinRate");
-  const answerRate = $("#careerAnswerRate");
-  if (!title || !games || !wins || !winRate || !answerRate) return;
-
-  if (!profile) {
-    title.textContent = "未連結 LINE";
-    games.textContent = "0";
-    wins.textContent = "0";
-    winRate.textContent = "0%";
-    answerRate.textContent = "0%";
-    return;
-  }
-
-  title.textContent = profile.title || "初入格界";
-  games.textContent = String(profile.gamesPlayed || 0);
-  wins.textContent = String(profile.wins || 0);
-  winRate.textContent = String(profile.winRate || 0) + "%";
-  answerRate.textContent = String(profile.answerRate || 0) + "%";
-}
-
 async function loadLineProfile() {
   try {
     const res = await fetch("/api/auth/me", {credentials:"include"});
@@ -101,11 +77,9 @@ async function loadLineProfile() {
       state.lineProfile = null;
       if (box) box.classList.add("hidden");
       if (loginBtn) loginBtn.classList.remove("hidden");
-      renderCareerPanel(null);
       return;
     }
     state.lineProfile = data.profile;
-    renderCareerPanel(data.profile);
     state.name = data.profile.displayName || state.name;
     if (playerNameInput && !playerNameInput.value.trim()) playerNameInput.value = state.name;
     saveIdentity();
@@ -123,7 +97,6 @@ async function loadLineProfile() {
 $("#lineLoginBtn")?.addEventListener("click", () => {
   location.href = "/api/auth/line/login";
 });
-renderCareerPanel();
 loadLineProfile();
 
 function page(id) {
@@ -156,7 +129,6 @@ $("#fightBtn")?.addEventListener("click", () => {
   saveIdentity();
   page("lobbyPage");
   refreshRooms();
-  loadLineProfile();
 });
 $$("[data-go]").forEach(b => b.addEventListener("click", () => page(b.dataset.go)));
 
@@ -405,7 +377,17 @@ function renderPlayers() {
     const el = document.createElement("div");
     el.className = "player-chip p"+p.colorIndex+(p.id===state.playerId?" me":"");
     const img = JOB_IMG[p.job] || "";
-    el.innerHTML = '<div class="player-main"><img class="player-job-icon" src="'+img+'" alt="'+escapeHtml(JOB_NAME[p.job] || "")+'"><b>'+escapeHtml(p.name)+'</b></div><div class="player-record-space" aria-hidden="true"></div>';
+    const career = p.career;
+    const recordHtml = p.isBot
+      ? '<div class="player-record-card bot-record"><strong>訓練玩家</strong><span>AI</span></div>'
+      : career
+        ? '<div class="player-record-card"><strong>'+escapeHtml(career.title || "初入格界")+'</strong>' +
+          '<div><span>場次</span><b>'+career.gamesPlayed+'</b></div>' +
+          '<div><span>勝場</span><b>'+career.wins+'</b></div>' +
+          '<div><span>勝率</span><b>'+career.winRate+'%</b></div>' +
+          '<div><span>答對率</span><b>'+career.answerRate+'%</b></div></div>'
+        : '<div class="player-record-card"><strong>未連結 LINE</strong><span>尚無遊戲紀錄</span></div>';
+    el.innerHTML = '<div class="player-main"><img class="player-job-icon" src="'+img+'" alt="'+escapeHtml(JOB_NAME[p.job] || "")+'"><b>'+escapeHtml(p.name)+'</b></div><div class="player-record-space">'+recordHtml+'</div>';
     bar.appendChild(el);
   });
 }
