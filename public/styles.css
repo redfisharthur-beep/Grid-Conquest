@@ -546,3 +546,24 @@
   margin:0 auto;
   text-align:center !important;
 }
+
+/* Claim/answer status emphasis */
+#answerState.state-select{
+  color:#C83E3E;
+  font-size:30px;
+  font-weight:700;
+  line-height:1.25;
+}
+#answerState.state-wait{
+  color:#557A9E;
+  font-size:18px;
+  font-weight:300;
+}
+#answerState.state-wrong{
+  color:#4F4B46;
+  font-size:18px;
+  font-weight:300;
+}
+@media(max-width:430px){
+  #answerState.state-select{font-size:27px}
+}
