@@ -425,7 +425,7 @@ function renderPlayers() {
           '<div><span>勝率</span><b>'+career.winRate+'%</b></div>' +
           '<div><span>累積獲得格子數</span><b>'+career.totalCellsGained+'</b></div>' +
           '<div><span>答對率</span><b>'+career.answerRate+'%</b></div></div>'
-        : '<div class="player-record-card"><strong>未連結 LINE</strong><span>尚無遊戲紀錄</span></div>';
+        : '';
     el.innerHTML = '<div class="player-main"><img class="player-job-icon" src="'+img+'" alt="'+escapeHtml(JOB_NAME[p.job] || "")+'"><b>'+escapeHtml(p.name)+'</b></div><div class="player-record-space">'+recordHtml+'</div>';
     bar.appendChild(el);
   });
