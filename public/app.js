@@ -309,10 +309,13 @@ function renderRoom(scores) {
   const r = state.room;
   if (!r) return;
   $("#difficultyText").textContent = "";
+  const finalBoardMode = r.state === "playing" && r.phase === "finalHold";
+  $("#gamePage")?.classList.toggle("final-board-mode", finalBoardMode);
   renderPlayers();
   renderBoard();
 
   if (r.state === "waiting") {
+    $("#gamePage")?.classList.remove("final-board-mode");
     $("#waitingPanel").classList.remove("hidden");
     $("#battlePanel").classList.add("hidden");
     $("#resultPanel").classList.add("hidden");
@@ -337,21 +340,20 @@ function renderRoom(scores) {
     $("#timer").classList.remove("hidden");
 
     if (r.phase === "finalHold") {
-      $("#questionText").textContent = "最終布陣";
       $("#answerForm").classList.add("hidden");
-      $("#answerState").textContent = "5秒後結算";
       $("#answerInput").disabled = true;
+      $("#timer").classList.add("hidden");
     } else {
       $("#answerForm").classList.remove("hidden");
       $("#questionText").textContent = (r.question?.text || "--").replace(/\s*=\s*\?\s*$/, "");
       syncAnswerUI();
+      startTimer(r.deadline);
     }
-
-    startTimer(r.deadline);
     return;
   }
 
   if (r.state === "finished") {
+    $("#gamePage")?.classList.remove("final-board-mode");
     clearInterval(state.timerId);
     $("#waitingPanel").classList.add("hidden");
     $("#battlePanel").classList.add("hidden");
