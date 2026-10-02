@@ -301,6 +301,7 @@ export class GameHub {
     const profile = await this.profileFromSession(session);
     const player = this.makePlayer(profile?.displayName || name, job, false, room.players.length === 0, server);
     player.lineUserId = profile?.lineUserId || null;
+    player.career = profile ? this.publicProfile(profile) : null;
     room.players.push(player);
 
     server.addEventListener("message", ev => {
@@ -778,6 +779,7 @@ export class GameHub {
       roundTouched:room.roundTouched || Array(9).fill(false),
       players:room.players.map((p,i) => ({
         id:p.id,name:p.name,job:p.job,host:p.host,isBot:!!p.isBot,status:p.status,
+        career:p.career || null,
         correctCount:p.correctCount,claimRemaining:p.claimRemaining,colorIndex:i,
         mageLineTriggers:p.mageLineTriggers||0,archerBonusPending:!!p.archerBonusPending,
         gainedCellsTotal:p.gainedCellsTotal||0,
