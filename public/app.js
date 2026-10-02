@@ -295,16 +295,6 @@ $("#answerForm")?.addEventListener("submit", e => {
   state.ws?.send(JSON.stringify({type:"answer", answer:Number(raw)}));
 });
 
-$("#backLobbyBtn")?.addEventListener("click", () => {
-  try { state.ws?.close(); } catch {}
-  state.ws = null;
-  state.room = null;
-  state.roomId = null;
-  state.playerId = null;
-  page("lobbyPage");
-  refreshRooms();
-});
-
 function renderRoom(scores) {
   const r = state.room;
   if (!r) return;
