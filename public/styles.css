@@ -434,3 +434,17 @@
   text-align:left;
   align-items:flex-start;
 }
+
+/* Desktop lobby proportions: keep room list compact */
+@media(min-width:1024px){
+  .lobby-actions{
+    grid-template-columns:300px minmax(280px,360px);
+    justify-content:center;
+    align-items:start;
+  }
+  .rooms-box{
+    width:100%;
+    max-width:360px;
+    justify-self:center;
+  }
+}
