@@ -362,6 +362,7 @@ function renderBoard() {
     const canClaim = r?.phase === "claiming" &&
       me?.status === "claiming" &&
       r?.currentClaimPlayerId === state.playerId &&
+      !r?.roundTouched?.[i] &&
       c.owner !== state.playerId &&
       (!(c.locked && c.owner !== state.playerId) || (me?.job === "priest" && i === 4));
     if (canClaim) btn.classList.add("claimable");
