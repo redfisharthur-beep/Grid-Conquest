@@ -486,7 +486,7 @@ export class GameHub {
 
       p.status = "claiming";
       room.currentClaimPlayerId = p.id;
-      room.deadline = Date.now() + 5000;
+      room.deadline = Date.now() + 8000;
       this.broadcast(room);
 
       if (p.isBot) {
@@ -870,13 +870,24 @@ export class GameHub {
         if (room.phase === "claiming" && room.deadline && room.deadline <= now) {
           const current = room.players.find(p => p.status === "claiming");
           if (current) {
-            current.status = "done";
-            current.claimRemaining = 0;
-            current.lockNextClaim = false;
-            this.send(current, {type:"claimTimeout"});
+            let autoClaimed = false;
+            if (current.claimRemaining > 0) {
+              const pick = this.chooseBotClaim(room, current);
+              if (pick >= 0) autoClaimed = this.claim(room, current, pick, false);
+            }
+            if (!autoClaimed && room.state === "playing" && room.phase === "claiming") {
+              current.status = "done";
+              current.claimRemaining = 0;
+              current.lockNextClaim = false;
+              this.send(current, {type:"claimTimeout"});
+              this.broadcast(room);
+              this.advanceClaimTurn(room);
+            } else if (autoClaimed && !current.isBot) {
+              this.send(current, {type:"autoClaim", message:"未在時間內選擇，已隨機佔領"});
+            }
+          } else {
+            this.advanceClaimTurn(room);
           }
-          this.broadcast(room);
-          this.advanceClaimTurn(room);
         }
       }
     }
