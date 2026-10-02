@@ -135,7 +135,7 @@ function joinRoom(id) {
     }
     if (msg.type === "answerResult") {
       if (msg.correct) {
-        $("#answerState").textContent = "答對　等待其他玩家完成";
+        $("#answerState").textContent = "答對　等待輪到你選擇";
         $("#answerInput").disabled = true;
       } else {
         $("#answerState").textContent = "答錯　正解：" + msg.answer;
@@ -245,6 +245,9 @@ function syncAnswerUI() {
       setTimeout(() => input.focus(), 50);
     }
     $("#answerState").textContent = "";
+  } else if (me.status === "answered") {
+    input.disabled = true;
+    $("#answerState").textContent = "已送出　等待其他玩家";
   } else if (me.status === "queued") {
     input.disabled = true;
     $("#answerState").textContent = "答對　等待輪到你選擇";
