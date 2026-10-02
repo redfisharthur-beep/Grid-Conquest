@@ -235,6 +235,10 @@ function joinRoom(id) {
       showSkillEffect(msg.job);
       return;
     }
+    if (msg.type === "lastRoundAlert") {
+      showLastRoundAlert();
+      return;
+    }
     if (msg.type === "claimError") toast(msg.message);
     if (msg.type === "timeout") {
       $("#answerState").textContent = "時間到";
@@ -261,6 +265,20 @@ function showSkillEffect(job) {
   clearTimeout(showSkillEffect.t);
   img.src = src;
   img.alt = (JOB_NAME[job] || "") + "技能發動";
+  overlay.classList.remove("hidden");
+  showSkillEffect.t = setTimeout(() => {
+    overlay.classList.add("hidden");
+    img.src = "";
+  }, 2000);
+}
+
+function showLastRoundAlert() {
+  const overlay = $("#skillOverlay");
+  const img = $("#skillOverlayImg");
+  if (!overlay || !img) return;
+  clearTimeout(showSkillEffect.t);
+  img.src = "/assets/last%20round.png";
+  img.alt = "最後一回合";
   overlay.classList.remove("hidden");
   showSkillEffect.t = setTimeout(() => {
     overlay.classList.add("hidden");
@@ -421,7 +439,7 @@ function renderBoard() {
     const canClaim = r?.phase === "claiming" &&
       me?.status === "claiming" &&
       r?.currentClaimPlayerId === state.playerId &&
-      !r?.roundTouched?.[i] &&
+      (r?.round === 7 || !r?.roundTouched?.[i]) &&
       c.owner !== state.playerId &&
       (!(c.locked && c.owner !== state.playerId) || (me?.job === "priest" && i === 4));
     if (canClaim) btn.classList.add("claimable");
