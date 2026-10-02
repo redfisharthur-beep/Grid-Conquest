@@ -59,11 +59,51 @@ const state = {
   playerId: null,
   room: null,
   ws: null,
-  timerId: null
+  timerId: null,
+  lineProfile: null,
+  lineSession: localStorage.getItem("gc_line_session") || ""
 };
 
 const playerNameInput = $("#playerName");
 if (playerNameInput) playerNameInput.value = state.name;
+
+async function loadLineProfile() {
+  try {
+    const res = await fetch("/api/auth/me", {credentials:"include"});
+    const data = await res.json();
+    const box = $("#lineProfile");
+    const loginBtn = $("#lineLoginBtn");
+    if (!data.loggedIn || !data.profile) {
+      state.lineProfile = null;
+      if (box) box.classList.add("hidden");
+      if (loginBtn) loginBtn.classList.remove("hidden");
+      return;
+    }
+    state.lineProfile = data.profile;
+    state.name = data.profile.displayName || state.name;
+    if (playerNameInput && !playerNameInput.value.trim()) playerNameInput.value = state.name;
+    saveIdentity();
+    if (loginBtn) loginBtn.classList.add("hidden");
+    if (box) {
+      const p = data.profile;
+      const avatar = p.pictureUrl ? '<img src="'+p.pictureUrl+'" alt="LINE頭像">' : '';
+      box.innerHTML = avatar +
+        '<div><strong>'+escapeHtml(p.displayName)+'</strong>' +
+        '<small>'+escapeHtml(p.title)+'｜'+p.gamesPlayed+' 場｜'+p.wins+' 勝｜勝率 '+p.winRate+'%｜答對率 '+p.answerRate+'%</small></div>' +
+        '<button id="lineLogoutBtn" type="button">登出</button>';
+      box.classList.remove("hidden");
+      $("#lineLogoutBtn")?.addEventListener("click", async () => {
+        await fetch("/api/auth/logout", {method:"POST", credentials:"include"});
+        location.reload();
+      });
+    }
+  } catch {}
+}
+
+$("#lineLoginBtn")?.addEventListener("click", () => {
+  location.href = "/api/auth/line/login";
+});
+loadLineProfile();
 
 function page(id) {
   document.querySelectorAll(".page").forEach(el => {
