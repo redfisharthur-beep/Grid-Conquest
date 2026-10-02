@@ -224,7 +224,8 @@ function joinRoom(id) {
       const answerState = $("#answerState");
       answerState.classList.remove("state-select","state-wait","state-wrong");
       if (msg.correct) {
-        answerState.textContent = "答對　等待輪到你選擇";
+        answerState.textContent = "等待中";
+        answerState.classList.add("state-wait");
         $("#answerInput").disabled = true;
       } else {
         answerState.textContent = "答錯　正解為：" + msg.answer;
@@ -244,14 +245,17 @@ function joinRoom(id) {
     }
     if (msg.type === "claimError") toast(msg.message);
     if (msg.type === "timeout") {
-      $("#answerState").textContent = "時間到";
+      const answerState = $("#answerState");
+      answerState.textContent = "答錯　正解為：" + msg.answer;
+      answerState.classList.remove("state-select","state-wait","state-wrong");
+      answerState.classList.add("state-wrong");
       $("#answerInput").disabled = true;
     }
-    if (msg.type === "claimTimeout") {
-      $("#answerState").textContent = "選擇時間到";
-    }
-    if (msg.type === "autoClaim") {
-      $("#answerState").textContent = msg.message || "已隨機佔領";
+    if (msg.type === "claimTimeout" || msg.type === "autoClaim") {
+      const answerState = $("#answerState");
+      answerState.textContent = "等待中";
+      answerState.classList.remove("state-select","state-wait","state-wrong");
+      answerState.classList.add("state-wait");
     }
   };
   ws.onclose = () => {
@@ -391,12 +395,12 @@ function syncAnswerUI() {
     }
     $("#answerState").textContent = "";
     $("#answerState").classList.remove("state-select","state-wait","state-wrong");
-  } else if (me.status === "answered") {
+  } else if (me.status === "answered" || me.status === "queued") {
     input.disabled = true;
-    $("#answerState").textContent = "已送出　等待其他玩家";
-  } else if (me.status === "queued") {
-    input.disabled = true;
-    $("#answerState").textContent = "答對　等待輪到你選擇";
+    const answerState = $("#answerState");
+    answerState.textContent = "等待中";
+    answerState.classList.remove("state-select","state-wait","state-wrong");
+    answerState.classList.add("state-wait");
   } else if (me.status === "claiming") {
     input.disabled = true;
     const answerState = $("#answerState");
@@ -406,6 +410,12 @@ function syncAnswerUI() {
     answerState.classList.add(myTurn ? "state-select" : "state-wait");
   } else {
     input.disabled = true;
+    const answerState = $("#answerState");
+    if (!answerState.classList.contains("state-wrong")) {
+      answerState.textContent = "等待中";
+      answerState.classList.remove("state-select","state-wait","state-wrong");
+      answerState.classList.add("state-wait");
+    }
   }
 }
 
