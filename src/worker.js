@@ -583,7 +583,7 @@ export class GameHub {
     const lineCaptured = this.resolveSandwichCaptures(room, p.id);
     if (p.job === "mage" && lineCaptured) {
       p.mageLineTriggers = (p.mageLineTriggers || 0) + 1;
-      if ((p.mageLineTriggers === 1 || p.mageLineTriggers === 3) && this.randomBonusClaim(room, p.id)) {
+      if (p.mageLineTriggers <= 3 && this.randomBonusClaim(room, p.id)) {
         skillJob = "mage";
       }
     }
