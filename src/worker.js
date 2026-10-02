@@ -189,13 +189,13 @@ export class GameHub {
       p.correctAnswers += 1;
       p.correctCount += 1;
       p.status = "answered";
+      p.roundCorrect = true;
       p.claimRemaining = (p.job === "archer" && p.correctCount === 3) ? 2 : 1;
       p.lockNextClaim = p.job === "warrior" && p.correctCount <= 2;
-      if (notify) this.send(p, {type:"answerResult", correct:true, waiting:true, claims:p.claimRemaining});
     } else {
       p.status = "done";
+      p.roundCorrect = false;
       p.claimRemaining = 0;
-      if (notify) this.send(p, {type:"answerResult", correct:false, answer:room.question?.answer});
     }
 
     this.broadcast(room);
@@ -214,6 +214,10 @@ export class GameHub {
 
     for (const p of room.players) {
       if (p.status === "answered") p.status = "queued";
+      if (!p.isBot) {
+        if (p.roundCorrect === true) this.send(p, {type:"answerResult", correct:true, waiting:true, claims:p.claimRemaining});
+        else if (p.roundCorrect === false) this.send(p, {type:"answerResult", correct:false, answer:room.question?.answer});
+      }
     }
 
     if (!room.claimQueue.length) {
@@ -297,6 +301,14 @@ export class GameHub {
     }
 
     this.broadcast(room);
+    if (p.isBot && p.status === "claiming" && p.claimRemaining > 0) {
+      const nextPick = this.chooseBotClaim(room, p);
+      if (nextPick >= 0) return this.claim(room, p, nextPick, false);
+      p.status = "done";
+      p.claimRemaining = 0;
+      this.advanceClaimTurn(room);
+      return true;
+    }
     this.scheduleAlarm();
     return true;
   }
@@ -316,6 +328,7 @@ export class GameHub {
       p.claimRemaining = 0;
       p.lockNextClaim = false;
       p.roundAnswerMs = 0;
+      p.roundCorrect = null;
       p.answerStartedAt = Date.now();
       p.botDue = p.isBot ? Date.now() + rand(900, 3500) : 0;
     }
@@ -489,6 +502,7 @@ export class GameHub {
             p.totalAnswers += 1;
             p.totalAnswerMs += 60000;
             p.roundAnswerMs = 60000;
+            p.roundCorrect = false;
             p.status = "done";
             p.claimRemaining = 0;
             p.botDue = 0;
